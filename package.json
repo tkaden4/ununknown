@@ -13,7 +13,7 @@
     "doc": "typedoc --theme minimal --media media",
     "format": "prettier src/**/*.ts --write",
     "prepare": "tsc",
-    "prepublishOnly": "npm test && npm format && npm doc"
+    "prepublishOnly": "npm test && npm run format && npm run doc"
   },
   "dependencies": {
     "fp-ts": "^2.2.0"
