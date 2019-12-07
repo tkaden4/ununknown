@@ -1,5 +1,5 @@
-import { recursive, DataValidator, primitive, array } from "../src";
-import { required, only, optional } from "../src/object";
+import { recursive, Validator, primitive, array } from "../src";
+import { required, just, optional } from "../src/object";
 
 interface Person {
   name: {
@@ -10,10 +10,10 @@ interface Person {
   children: Array<Person>;
 }
 
-const personValidator: DataValidator<Person> = recursive(() =>
-  only({
+const personValidator: Validator<Person> = recursive(() =>
+  just({
     name: required(
-      only({
+      just({
         first: required(primitive("string")),
         last: required(primitive("string"))
       })
