@@ -8,7 +8,7 @@
   "scripts": {
     "install": "tsc",
     "test": "jest",
-    "doc": "typedoc"
+    "doc": "typedoc --theme minimal --media media"
   },
   "dependencies": {
     "fp-ts": "^2.2.0"

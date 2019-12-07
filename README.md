@@ -1,3 +1,5 @@
+<img src="media/logo.png" height=300 width=300 />
+
 # ts-data
 
 Typesafe combinatorial data validators for typescript using [fp-ts](https://gcanti.github.io/fp-ts/).
