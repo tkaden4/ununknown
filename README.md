@@ -1,10 +1,16 @@
 <img src="media/logo.png" height=300 width=300 />
 
-# ts-data
+# ununknown
 
 Typesafe combinatorial data validators for typescript using [fp-ts](https://gcanti.github.io/fp-ts/).
 
-Documentation is available [here](https://www.tkaden.net/ts-data).
+Documentation is available [here](https://www.tkaden.net/ununknown).
+
+## Installation
+
+```bash
+npm install ununknown
+```
 
 ## Outline
 
@@ -20,8 +26,7 @@ in several situations, including, if not limited to:
 ## Example
 
 ```typescript
-import { Validator, primitive, array, recursive } from "ts-data";
-import { required, optional, just } from "ts-data/object";
+import { Validator, primitive, array, recursive, object } from "ununknown";
 
 interface Person {
   name: {
@@ -33,15 +38,15 @@ interface Person {
 }
 
 const personValidator: Validator<Person> = recursive(() =>
-  just({
-    name: required(
-      just({
-        first: required(primitive("string")),
-        last: required(primitive("string"))
+  object.just({
+    name: object.required(
+      object.just({
+        first: object.required(primitive("string")),
+        last: object.required(primitive("string"))
       })
     ),
-    age: optional(primitive("number")),
-    children: required(array(personValidator))
+    age: object.optional(primitive("number")),
+    children: object.required(array(personValidator))
   })
 );
 ```

@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>ts-data | ts-data</title>
+	<title>ununknown | ununknown</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<style type="text/css">/*! normalize.css v1.1.3 | MIT License | git.io/normalize */
@@ -2342,7 +2342,7 @@ img {
 		<div class="container">
 			<div class="table-wrap">
 				<div class="table-cell">
-					<strong><a href="index.html">ts-data</a></strong>
+					<strong><a href="index.html">ununknown</a></strong>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -2378,11 +2378,15 @@ img {
 	<div class="content-wrap">
 		<div class="tsd-panel tsd-typography">
 			<img src="media/logo.png" height=300 width=300 />
-			<a href="#ts-data" id="ts-data" style="color: inherit; text-decoration: none;">
-				<h1>ts-data</h1>
+			<a href="#ununknown" id="ununknown" style="color: inherit; text-decoration: none;">
+				<h1>ununknown</h1>
 			</a>
 			<p>Typesafe combinatorial data validators for typescript using <a href="https://gcanti.github.io/fp-ts/">fp-ts</a>.</p>
 			<p>Documentation is available <a href="https://www.tkaden.net/ts-data">here</a>.</p>
+			<a href="#installation" id="installation" style="color: inherit; text-decoration: none;">
+				<h2>Installation</h2>
+			</a>
+			<pre><code class="language-bash">npm install ununknown</code></pre>
 			<a href="#outline" id="outline" style="color: inherit; text-decoration: none;">
 				<h2>Outline</h2>
 			</a>
@@ -2398,8 +2402,7 @@ img {
 			<a href="#example" id="example" style="color: inherit; text-decoration: none;">
 				<h2>Example</h2>
 			</a>
-			<pre><code class="language-typescript"><span class="hljs-keyword">import</span> { Validator, primitive, array, recursive } <span class="hljs-keyword">from</span> <span class="hljs-string">"ts-data"</span>;
-<span class="hljs-keyword">import</span> { required, optional, just } <span class="hljs-keyword">from</span> <span class="hljs-string">"ts-data/object"</span>;
+			<pre><code class="language-typescript"><span class="hljs-keyword">import</span> { Validator, primitive, array, recursive, object } <span class="hljs-keyword">from</span> <span class="hljs-string">"ununknown"</span>;
 
 <span class="hljs-keyword">interface</span> Person {
   name: {
@@ -2411,15 +2414,15 @@ img {
 }
 
 <span class="hljs-keyword">const</span> personValidator: Validator&lt;Person&gt; = recursive(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span>
-  just({
-    name: required(
-      just({
-        first: required(primitive(<span class="hljs-string">"string"</span>)),
-        last: required(primitive(<span class="hljs-string">"string"</span>))
+  object.just({
+    name: object.required(
+      object.just({
+        first: object.required(primitive(<span class="hljs-string">"string"</span>)),
+        last: object.required(primitive(<span class="hljs-string">"string"</span>))
       })
     ),
-    age: optional(primitive(<span class="hljs-string">"number"</span>)),
-    children: required(array(personValidator))
+    age: object.optional(primitive(<span class="hljs-string">"number"</span>)),
+    children: object.required(array(personValidator))
   })
 );</code></pre>
 		</div>
@@ -2431,7 +2434,6 @@ img {
 						<h3>External modules</h3>
 						<ul class="tsd-index-list">
 							<li class="tsd-kind-external-module"><a href="modules/_index_.html" class="tsd-kind-icon">&quot;index&quot;</a></li>
-							<li class="tsd-kind-external-module"><a href="modules/_object_index_.html" class="tsd-kind-icon">&quot;object/index&quot;</a></li>
 							<li class="tsd-kind-external-module"><a href="modules/_util_.html" class="tsd-kind-icon">&quot;util&quot;</a></li>
 						</ul>
 					</section>

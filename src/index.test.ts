@@ -1,5 +1,4 @@
-import { primitive, Validator, recursive, array } from "./index";
-import { just, required } from "./object";
+import { primitive, Validator, recursive, array, object } from "./index";
 import { isRight } from "fp-ts/lib/Either";
 
 describe("primitive validation", () => {

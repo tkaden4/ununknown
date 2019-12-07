@@ -1,5 +1,5 @@
 {
-  "name": "ts-data",
+  "name": "ununknown",
   "version": "0.1.0",
   "description": "Typesafe combinatorial data validators for typescript.",
   "repository": "https://github.com/tkaden4/ts-data",
@@ -8,7 +8,6 @@
   "types": "build/index.d.ts",
   "main": "build/index.js",
   "scripts": {
-    "install": "tsc",
     "test": "jest",
     "doc": "typedoc --theme minimal --media media",
     "format": "prettier src/**/*.ts --write",
