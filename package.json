@@ -1,14 +1,19 @@
 {
   "name": "ts-data",
-  "version": "1.0.0",
-  "main": "index.js",
+  "version": "0.1.0",
+  "description": "Typesafe combinatorial data validators for typescript.",
   "repository": "https://github.com/tkaden4/ts-data",
   "author": "Kaden Thomas <thomas.kaden4@outlook.com>",
   "license": "MIT",
+  "types": "build/index.d.ts",
+  "main": "build/index.js",
   "scripts": {
     "install": "tsc",
     "test": "jest",
-    "doc": "typedoc --theme minimal --media media"
+    "doc": "typedoc --theme minimal --media media",
+    "format": "prettier src/**/*.ts --write",
+    "prepare": "tsc",
+    "prepublishOnly": "npm test && npm format && npm doc"
   },
   "dependencies": {
     "fp-ts": "^2.2.0"
@@ -16,8 +21,9 @@
   "devDependencies": {
     "@types/jest": "^24.0.23",
     "jest": "^24.9.0",
+    "prettier": "^1.19.1",
     "ts-jest": "^24.2.0",
-    "typescript": "^3.7.3",
-    "typedoc": "^0.15.3"
+    "typedoc": "^0.15.3",
+    "typescript": "^3.7.3"
   }
 }
