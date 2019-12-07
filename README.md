@@ -50,3 +50,7 @@ const personValidator: Validator<Person> = recursive(() =>
   })
 );
 ```
+
+## Caveats
+
+- Circular references are _not_ handled, which should not affect anything encoded in JSON. However, this is a valid validation case and will be handled in the future.

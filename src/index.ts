@@ -37,9 +37,9 @@ export type FieldsResult<Fields> = {
  * }
  *
  * const roseTreeValidator: Validator<RoseTree> = recursive(() =>
- *   just({
- *     value: required(primitive.string),
- *     children: required(array(roseTreeValidator))
+ *   object.just({
+ *     value: field.required(thing.is.string),
+ *     children: field.required(array.of(roseTreeValidator))
  *   })
  * );
  * ```
@@ -250,10 +250,10 @@ export module object {
    *   b: number;
    * }
    *
-   * const rbgColorValidator: Validator<RGBColor> = just({
-   *   r: required(primitive.number,
-   *   g: required(primitive.number),
-   *   b: required(primitive.number)
+   * const rbgColorValidator: Validator<RGBColor> = object.just({
+   *   r: field.required(number.range.inclusive(0, 255)),
+   *   g: field.required(number.range.inclusive(0, 255)),
+   *   b: field.required(number.range.inclusive(0, 255))
    * });
    * ```
    */
@@ -304,17 +304,19 @@ export module string {
 export module number {
   export const predicate = p("number");
 
-  export const between = (from: number, to: number) =>
-    predicate(
-      n => n > from && n < to,
-      n => `${n} is not in range (${from},${to})`
-    );
+  export module range {
+    export const exclusive = (from: number, to: number) =>
+      predicate(
+        n => n > from && n < to,
+        n => `${n} is not in range (${from},${to})`
+      );
 
-  export const range = (from: number, to: number) =>
-    predicate(
-      n => n >= from && n <= to,
-      n => `${n} is not in range [${from},${to}]`
-    );
+    export const inclusive = (from: number, to: number) =>
+      predicate(
+        n => n >= from && n <= to,
+        n => `${n} is not in range [${from},${to}]`
+      );
+  }
 }
 
 export module array {
