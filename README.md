@@ -2,6 +2,8 @@
 
 Typesafe combinatorial data validators for typescript using [fp-ts](https://gcanti.github.io/fp-ts/).
 
+Documentation is available [here](https://www.tkaden.net/ts-data).
+
 ## Outline
 
 The crux of the problem this library solves is the following:
