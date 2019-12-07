@@ -83,27 +83,27 @@
 				<a href="#example" id="example" style="color: inherit; text-decoration: none;">
 					<h2>Example</h2>
 				</a>
-				<pre><code class="language-typescript">const { primitive, array, recursive } = "ts-data";
-const { required, optional, only } = "ts-data/object;
+				<pre><code class="language-typescript"><span class="hljs-keyword">import</span> { Validator, primitive, array, recursive } <span class="hljs-keyword">from</span> <span class="hljs-string">"ts-data"</span>;
+<span class="hljs-keyword">import</span> { required, optional, just } <span class="hljs-keyword">from</span> <span class="hljs-string">"ts-data/object"</span>;
 
-interface Person {
+<span class="hljs-keyword">interface</span> Person {
   name: {
-    first: string;
-    last: string;
+    first: <span class="hljs-built_in">string</span>;
+    last: <span class="hljs-built_in">string</span>;
   };
-  age?: number;
-  children: Array&lt;Person&gt;;
+  age?: <span class="hljs-built_in">number</span>;
+  children: <span class="hljs-built_in">Array</span>&lt;Person&gt;;
 }
 
-const personValidator: DataValidator&lt;Person&gt; = recursive(() =&gt;
+<span class="hljs-keyword">const</span> personValidator: Validator&lt;Person&gt; = recursive(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span>
   just({
     name: required(
       just({
-        first: required(primitive("string")),
-        last: required(primitive("string"))
+        first: required(primitive(<span class="hljs-string">"string"</span>)),
+        last: required(primitive(<span class="hljs-string">"string"</span>))
       })
     ),
-    age: optional(primitive("number")),
+    age: optional(primitive(<span class="hljs-string">"number"</span>)),
     children: required(array(personValidator))
   })
 );</code></pre>
