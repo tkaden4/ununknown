@@ -49,17 +49,17 @@ describe("primitive validation", () => {
     expect(isSuccess(thing.is.equalTo(0)(1))).toBeFalsy();
     expect(isSuccess(thing.is.equalTo(1)("foobar"))).toBeFalsy();
 
-    // is.not.equalTo success
-    expect(isSuccess(thing.is.not.equalTo(1)(2))).toBeTruthy();
-    expect(isSuccess(thing.is.not.equalTo("foobar")("baz"))).toBeTruthy();
-    expect(isSuccess(thing.is.not.equalTo("foobar")(0))).toBeTruthy();
-    expect(isSuccess(thing.is.not.equalTo(0)(true))).toBeTruthy();
+    // // is.not.equalTo success
+    // expect(isSuccess(thing.is.not.equalTo(1)(2))).toBeTruthy();
+    // expect(isSuccess(thing.is.not.equalTo("foobar")("baz"))).toBeTruthy();
+    // expect(isSuccess(thing.is.not.equalTo("foobar")(0))).toBeTruthy();
+    // expect(isSuccess(thing.is.not.equalTo(0)(true))).toBeTruthy();
 
-    // is.not.equalTo failure
-    expect(isSuccess(thing.is.not.equalTo("foobar")("foobar"))).toBeFalsy();
-    expect(isSuccess(thing.is.not.equalTo(0)(0))).toBeFalsy();
-    expect(isSuccess(thing.is.not.equalTo({})({}))).toBeFalsy();
-    expect(isSuccess(thing.is.not.equalTo({ age: 0 })({ age: 0 }))).toBeFalsy();
+    // // is.not.equalTo failure
+    // expect(isSuccess(thing.is.not.equalTo("foobar")("foobar"))).toBeFalsy();
+    // expect(isSuccess(thing.is.not.equalTo(0)(0))).toBeFalsy();
+    // expect(isSuccess(thing.is.not.equalTo({})({}))).toBeFalsy();
+    // expect(isSuccess(thing.is.not.equalTo({ age: 0 })({ age: 0 }))).toBeFalsy();
   });
 
   test("color", () => {

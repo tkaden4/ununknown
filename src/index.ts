@@ -156,15 +156,17 @@ export module thing {
       export const number = of("number");
       export const array = predicate("object")(Array.isArray);
 
+      // type Not<K> = K extends Primitive ? Exclude<> : never;
+
       /**
-       * Check that the input value is equal to `object` (`===`).
+       * Check that the input value is not equal to `object` (`===`).
        */
-      export function equalTo<K>(object: K): Validator<K> {
-        return o =>
-          isFailure(is.equalTo(object)(o))
-            ? right(o as K)
-            : left(`${JSON.stringify(o)} is equal to ${JSON.stringify(object)}`);
-      }
+      // export function equalTo<K>(object: K): Validator<K> {
+      //   return o =>
+      //     isFailure(is.equalTo(object)(o))
+      //       ? right(o as K)
+      //       : left(`${JSON.stringify(o)} is equal to ${JSON.stringify(object)}`);
+      // }
     }
   }
 }

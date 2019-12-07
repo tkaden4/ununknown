@@ -1,6 +1,6 @@
 {
   "name": "ununknown",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Typesafe combinatorial data validators for typescript.",
   "repository": "https://github.com/tkaden4/ts-data",
   "author": "Kaden Thomas <thomas.kaden4@outlook.com>",
@@ -9,7 +9,7 @@
   "main": "build/index.js",
   "scripts": {
     "test": "jest",
-    "doc": "typedoc --theme minimal --media media && touch docs/.nojekyll",
+    "doc": "typedoc --theme default --media media && touch docs/.nojekyll",
     "format": "prettier src/**/*.ts --write",
     "prepare": "tsc",
     "prepublishOnly": "npm test && npm run format && npm run doc"
