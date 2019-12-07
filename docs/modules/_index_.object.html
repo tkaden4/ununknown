@@ -2413,7 +2413,7 @@ img {
 				<div class="tsd-signature tsd-kind-icon">predicate<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">(Anonymous function)</span><span class="tsd-signature-symbol"> =&nbsp;p(&quot;object&quot;)</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/tkaden4/ts-data/blob/33923a0/src/index.ts#L218">index.ts:218</a></li>
+						<li>Defined in <a href="https://github.com/tkaden4/ts-data/blob/129fae4/src/index.ts#L218">index.ts:218</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -2430,7 +2430,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/tkaden4/ts-data/blob/33923a0/src/index.ts#L226">index.ts:226</a></li>
+								<li>Defined in <a href="https://github.com/tkaden4/ts-data/blob/129fae4/src/index.ts#L226">index.ts:226</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -2470,7 +2470,7 @@ img {
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/tkaden4/ts-data/blob/33923a0/src/index.ts#L260">index.ts:260</a></li>
+								<li>Defined in <a href="https://github.com/tkaden4/ts-data/blob/129fae4/src/index.ts#L260">index.ts:260</a></li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -2485,10 +2485,10 @@ img {
   b: <span class="hljs-built_in">number</span>;
 }
 
-<span class="hljs-keyword">const</span> rbgColorValidator: Validator&lt;RGBColor&gt; = just({
-  r: required(primitive.number,
-  g: required(primitive.number),
-  b: required(primitive.number)
+<span class="hljs-keyword">const</span> rbgColorValidator: Validator&lt;RGBColor&gt; = object.just({
+  r: field.required(<span class="hljs-built_in">number</span>.range.inclusive(<span class="hljs-number">0</span>, <span class="hljs-number">255</span>)),
+  g: field.required(<span class="hljs-built_in">number</span>.range.inclusive(<span class="hljs-number">0</span>, <span class="hljs-number">255</span>)),
+  b: field.required(<span class="hljs-built_in">number</span>.range.inclusive(<span class="hljs-number">0</span>, <span class="hljs-number">255</span>))
 });</code></pre>
 								</dd>
 							</dl>
