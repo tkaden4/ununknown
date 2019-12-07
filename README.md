@@ -4,7 +4,7 @@
 
 Typesafe combinatorial data validators for typescript using [fp-ts](https://gcanti.github.io/fp-ts/).
 
-Documentation is available [here](https://www.tkaden.net/ununknown).
+Documentation is available [here](https://www.tkaden.net/ununknown), although `404` errors are currently being resolved.
 
 ## Installation
 
@@ -26,7 +26,7 @@ in several situations, including, if not limited to:
 ## Example
 
 ```typescript
-import { Validator, primitive, array, recursive, object } from "ununknown";
+import { recursive, Validator, object, field, thing, array } from "../src";
 
 interface Person {
   name: {
@@ -39,14 +39,14 @@ interface Person {
 
 const personValidator: Validator<Person> = recursive(() =>
   object.just({
-    name: object.required(
+    name: field.required(
       object.just({
-        first: object.required(primitive("string")),
-        last: object.required(primitive("string"))
+        first: field.required(thing.is.string),
+        last: field.required(thing.is.string)
       })
     ),
-    age: object.optional(primitive("number")),
-    children: object.required(array(personValidator))
+    age: field.optional(thing.is.number),
+    children: field.required(array.of(personValidator))
   })
 );
 ```

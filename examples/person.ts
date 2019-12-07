@@ -1,5 +1,4 @@
-import { recursive, Validator, primitive, array } from "../src";
-import { required, just, optional } from "../src/object";
+import { recursive, Validator, object, field, thing, array } from "../src";
 
 interface Person {
   name: {
@@ -11,14 +10,14 @@ interface Person {
 }
 
 const personValidator: Validator<Person> = recursive(() =>
-  just({
-    name: required(
-      just({
-        first: required(primitive("string")),
-        last: required(primitive("string"))
+  object.just({
+    name: field.required(
+      object.just({
+        first: field.required(thing.is.string),
+        last: field.required(thing.is.string)
       })
     ),
-    age: optional(primitive("number")),
-    children: required(array(personValidator))
+    age: field.optional(thing.is.number),
+    children: field.required(array.of(personValidator))
   })
 );

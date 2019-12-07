@@ -1,52 +1,29 @@
 import { Either, left, right, isLeft, chain, isRight, Right, Left } from "fp-ts/lib/Either";
+import _ from "lodash";
 import { difference } from "fp-ts/lib/Set";
 import { eqString } from "fp-ts/lib/Eq";
-import { TypeNameToPrimitive, PrimitiveString } from "./util";
+import { TypeNameToPrimitive, PrimitiveString, Primitive } from "./util";
 
 export type ParseError = string;
-export type ValidateResult<R> = Either<ParseError, R>;
-export type Validator<R> = (o: unknown) => ValidateResult<R>;
+export type ValidateResult<Error, R> = Either<Error, R>;
+export type Validator<R, E = ParseError> = (o: unknown) => ValidateResult<E, R>;
 
-/**
- * Ensure that the input value is one the many primitive javascript objects.
- * @param type string representing the `typeof` string for the object.
- */
-export function primitive<T extends TypeNameToPrimitive<K>, K extends PrimitiveString>(type: K): Validator<T> {
-  return o => {
-    if (typeof o === type) {
-      return right(o as T);
-    } else {
-      return left(`${JSON.stringify(o)} is not of type ${JSON.stringify(type)}`);
-    }
+export type FieldValidator<FieldName extends string | number | symbol, R> = (o: FieldName) => Validator<R>;
+
+export type FieldValidatorResult<D> = D extends FieldValidator<infer _, infer R> ? R : never;
+
+export type OptionalKeys<Fields> = {
+  [X in keyof Fields]: Fields[X] extends FieldValidator<infer _, infer R> ? (R extends undefined ? X : never) : never;
+}[keyof Fields];
+
+export type NonOptionalKeys<Fields> = Exclude<keyof Fields, OptionalKeys<Fields>>;
+
+export type FieldsResult<Fields> = {
+  [X in OptionalKeys<Fields>]?: FieldValidatorResult<Fields[X]>;
+} &
+  {
+    [X in NonOptionalKeys<Fields>]: FieldValidatorResult<Fields[X]>;
   };
-}
-
-/**
- * Check that the input value is equal to `object` (`===`).
- */
-export function equals<K>(object: K): Validator<K> {
-  return o => (o === object ? right(o as K) : left(`${JSON.stringify(o)} is not equal to ${JSON.stringify(object)}`));
-}
-
-/**
- * Check that the input value is an array satisfying constraints.
- *
- * @param validator Check for each element of the input array.
- */
-export function array<Value>(validator: Validator<Value>): Validator<Array<Value>> {
-  return o => {
-    if (Array.isArray(o)) {
-      const results = o.map(each => validator(each)).filter(isLeft);
-      if (results.length > 0) {
-        return left(`${JSON.stringify(o)} is an invalid array: ${results.map(x => x.left).join(", ")}`);
-      } else {
-        return right(o);
-      }
-    } else {
-      return left(`${JSON.stringify(o)} is not an array`);
-    }
-  };
-}
 
 /**
  * Due to javascript not being a "lazy" language, we have to embed recursive references to
@@ -61,7 +38,7 @@ export function array<Value>(validator: Validator<Value>): Validator<Array<Value
  *
  * const roseTreeValidator: Validator<RoseTree> = recursive(() =>
  *   just({
- *     value: required(primitive("string")),
+ *     value: required(primitive.string),
  *     children: required(array(roseTreeValidator))
  *   })
  * );
@@ -73,15 +50,21 @@ export function recursive<R>(body: () => Validator<R>): Validator<R> {
   return o => body()(o);
 }
 
+/**
+ * Run two validators on an unknown, failing if either fail and succeeding when both succeed.
+ */
 export function both<T, U>(fst: Validator<T>, snd: Validator<U>): Validator<T & U> {
   return o => chain(() => snd(o) as Either<string, T & U>)(fst(o));
 }
 
+/**
+ * Run two validators on an unknown, succeeding if either succeed and failing if both fail.
+ */
 export function or<T, U>(fst: Validator<T>, snd: Validator<U>): Validator<T | U> {
   return o => {
     const fres = fst(o);
     const sres = snd(o);
-    if (isLeft(fres) && isLeft(sres)) {
+    if (isFailure(fres) && isFailure(sres)) {
       return left(`${fres.left} and ${sres.left}`);
     } else {
       return right(o as T | U);
@@ -97,38 +80,111 @@ export function or<T, U>(fst: Validator<T>, snd: Validator<U>): Validator<T | U>
  */
 export function validateEx<R>(o: unknown, validator: Validator<R>): R | never {
   const result = validator(o);
-  if (isLeft(result)) {
+  if (isFailure(result)) {
     throw new Error(result.left);
   }
   return result.right;
 }
 
-export function isSuccess<R>(result: ValidateResult<R>): result is Right<R> {
+export function isSuccess<R, E>(result: ValidateResult<E, R>): result is Right<R> {
   return isRight(result);
 }
 
-export function isFailure<R>(result: ValidateResult<R>): result is Left<string> {
+export function isFailure<R, E>(result: ValidateResult<E, R>): result is Left<E> {
   return isLeft(result);
 }
 
-export module object {
-  export type FieldValidator<FieldName extends string | number | symbol, R> = (o: FieldName) => Validator<R>;
+export const predicate = <K extends PrimitiveString>(type: K) => (
+  p: (s: TypeNameToPrimitive<K>) => boolean,
+  template: (s: TypeNameToPrimitive<K>) => string = s => `${s} did not satisfy custom constraint`
+): Validator<TypeNameToPrimitive<K>> => o =>
+  chain((s: TypeNameToPrimitive<K>) => (p(s) ? right(s) : left(template(s))))(thing.is.of(type)(o));
 
-  type _FieldValidatorResult<D> = D extends FieldValidator<infer F, infer R> ? R : never;
+export module thing {
+  export module is {
+    /**
+     * Ensure that the input value is one the many primitive javascript objects.
+     * @param type string representing the `typeof` string for the object.
+     */
+    export function of<K extends PrimitiveString>(type: K): Validator<TypeNameToPrimitive<K>> {
+      return o => {
+        if (typeof o === type) {
+          return right(o as any);
+        } else {
+          return left(`${JSON.stringify(o)} is not of type ${JSON.stringify(type)}`);
+        }
+      };
+    }
 
-  export type OptionalKeys<Fields> = {
-    [X in keyof Fields]: Fields[X] extends FieldValidator<infer F, infer R> ? (R extends undefined ? X : never) : never;
-  }[keyof Fields];
+    export const symbol = of("symbol");
+    export const string = of("string");
+    export const func = of("function");
+    export const object = of("object");
+    export const undef = of("undefined");
+    export const bigint = of("bigint");
+    export const boolean = of("boolean");
+    export const number = of("number");
+    export const array = predicate("object")(Array.isArray);
 
-  export type NonOptionalKeys<Fields> = Exclude<keyof Fields, OptionalKeys<Fields>>;
+    /**
+     * Check that the input value is equal to `object` (_.isEqual, works with objects).
+     */
+    export function equalTo<K>(object: K): Validator<K> {
+      return o =>
+        _.isEqual(object, o) ? right(o as K) : left(`${JSON.stringify(o)} is not equal to ${JSON.stringify(object)}`);
+    }
 
-  export type FieldsResult<Fields> = {
-    [X in OptionalKeys<Fields>]?: _FieldValidatorResult<Fields[X]>;
-  } &
-    {
-      [X in NonOptionalKeys<Fields>]: _FieldValidatorResult<Fields[X]>;
-    };
+    export module not {
+      /**
+       * Ensure that the input value is not one the specific primitive javascript objects.
+       * @param type string representing the `typeof` string for the object to exclude.
+       */
+      export function of<K extends PrimitiveString>(
+        type: K
+      ): Validator<TypeNameToPrimitive<Exclude<PrimitiveString, K>>> {
+        return o =>
+          isFailure(is.of(type)(o)) ? right(o as any) : left(`${JSON.stringify(o)} is of type ${JSON.stringify(type)}`);
+      }
 
+      export const symbol = of("symbol");
+      export const string = of("string");
+      export const func = of("function");
+      export const object = of("object");
+      export const undef = of("undefined");
+      export const bigint = of("bigint");
+      export const boolean = of("boolean");
+      export const number = of("number");
+      export const array = predicate("object")(Array.isArray);
+
+      /**
+       * Check that the input value is equal to `object` (`===`).
+       */
+      export function equalTo<K>(object: K): Validator<K> {
+        return o =>
+          isFailure(is.equalTo(object)(o))
+            ? right(o as K)
+            : left(`${JSON.stringify(o)} is equal to ${JSON.stringify(object)}`);
+      }
+    }
+  }
+}
+
+// dummy variable so we can define `predicate` in child modules
+const p = predicate;
+
+export module boolean {
+  export const isTrue = predicate("boolean")(
+    s => s,
+    () => `expected true, got false`
+  ) as Validator<true>;
+
+  export const isFalse = predicate("boolean")(
+    s => !s,
+    () => `expected false, got true`
+  ) as Validator<false>;
+}
+
+export module field {
   export function optional<F extends string | number | symbol, R>(
     validator: Validator<R>
   ): FieldValidator<F, R | undefined> {
@@ -150,6 +206,16 @@ export module object {
       }
     };
   }
+}
+
+export module bigint {
+  export const predicate = p("bigint");
+}
+
+export module undef {}
+
+export module object {
+  export const predicate = p("object");
 
   /**
    * Check that object satisfies certain conditions on it's fields.
@@ -165,12 +231,12 @@ export module object {
         // Todo use Validated to improve errors
         for (const fieldName in fieldsValidators) {
           const result = fieldsValidators[fieldName](fieldName)(obj);
-          if (isLeft(result)) {
+          if (isFailure(result)) {
             return result;
           }
         }
         return right(obj as { [X in keyof Fields]: Fields[X] });
-      })(primitive("object")(o));
+      })(thing.is.object(o));
   }
 
   /**
@@ -185,9 +251,9 @@ export module object {
    * }
    *
    * const rbgColorValidator: Validator<RGBColor> = just({
-   *   r: required(primitive("number")),
-   *   g: required(primitive("number")),
-   *   b: required(primitive("number"))
+   *   r: required(primitive.number,
+   *   g: required(primitive.number),
+   *   b: required(primitive.number)
    * });
    * ```
    */
@@ -208,5 +274,67 @@ export module object {
         }
         return right(all as any);
       })(has(fieldsValidators)(o));
+  }
+}
+
+export module func {
+  export const predicate = p("function");
+}
+
+export module symbol {
+  export const predicate = p("symbol");
+}
+
+export module string {
+  export const predicate = p("string");
+
+  export const length = (n: number) =>
+    predicate(
+      s => s.length === n,
+      s => `${JSON.stringify(s)} is required to be of length ${n}, got ${s.length}`
+    );
+
+  export const pattern = (pattern: string | RegExp) =>
+    predicate(
+      s => s.match(pattern) !== null,
+      s => `${JSON.stringify(s)} does not match pattern ${JSON.stringify(pattern)}`
+    );
+}
+
+export module number {
+  export const predicate = p("number");
+
+  export const between = (from: number, to: number) =>
+    predicate(
+      n => n > from && n < to,
+      n => `${n} is not in range (${from},${to})`
+    );
+
+  export const range = (from: number, to: number) =>
+    predicate(
+      n => n >= from && n <= to,
+      n => `${n} is not in range [${from},${to}]`
+    );
+}
+
+export module array {
+  /**
+   * Check that the input value is an array satisfying constraints.
+   *
+   * @param validator Check for each element of the input array.
+   */
+  export function of<Value>(validator: Validator<Value>): Validator<Array<Value>> {
+    return o => {
+      if (Array.isArray(o)) {
+        const results = o.map(each => validator(each)).filter(isFailure);
+        if (results.length > 0) {
+          return left(`${JSON.stringify(o)} is an invalid array: ${results.map(x => x.left).join(", ")}`);
+        } else {
+          return right(o);
+        }
+      } else {
+        return left(`${JSON.stringify(o)} is not an array`);
+      }
+    };
   }
 }

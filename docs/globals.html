@@ -2382,7 +2382,7 @@ img {
 				<h1>ununknown</h1>
 			</a>
 			<p>Typesafe combinatorial data validators for typescript using <a href="https://gcanti.github.io/fp-ts/">fp-ts</a>.</p>
-			<p>Documentation is available <a href="https://www.tkaden.net/ununknown">here</a>.</p>
+			<p>Documentation is available <a href="https://www.tkaden.net/ununknown">here</a>, although <code>404</code> errors are currently being resolved.</p>
 			<a href="#installation" id="installation" style="color: inherit; text-decoration: none;">
 				<h2>Installation</h2>
 			</a>
@@ -2402,7 +2402,7 @@ img {
 			<a href="#example" id="example" style="color: inherit; text-decoration: none;">
 				<h2>Example</h2>
 			</a>
-			<pre><code class="language-typescript"><span class="hljs-keyword">import</span> { Validator, primitive, array, recursive, object } <span class="hljs-keyword">from</span> <span class="hljs-string">"ununknown"</span>;
+			<pre><code class="language-typescript"><span class="hljs-keyword">import</span> { recursive, Validator, object, field, thing, array } <span class="hljs-keyword">from</span> <span class="hljs-string">"../src"</span>;
 
 <span class="hljs-keyword">interface</span> Person {
   name: {
@@ -2415,14 +2415,14 @@ img {
 
 <span class="hljs-keyword">const</span> personValidator: Validator&lt;Person&gt; = recursive(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span>
   object.just({
-    name: object.required(
+    name: field.required(
       object.just({
-        first: object.required(primitive(<span class="hljs-string">"string"</span>)),
-        last: object.required(primitive(<span class="hljs-string">"string"</span>))
+        first: field.required(thing.is.string),
+        last: field.required(thing.is.string)
       })
     ),
-    age: object.optional(primitive(<span class="hljs-string">"number"</span>)),
-    children: object.required(array(personValidator))
+    age: field.optional(thing.is.number),
+    children: field.required(array.of(personValidator))
   })
 );</code></pre>
 		</div>

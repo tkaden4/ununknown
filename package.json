@@ -1,6 +1,6 @@
 {
   "name": "ununknown",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Typesafe combinatorial data validators for typescript.",
   "repository": "https://github.com/tkaden4/ts-data",
   "author": "Kaden Thomas <thomas.kaden4@outlook.com>",
@@ -15,7 +15,9 @@
     "prepublishOnly": "npm test && npm run format && npm run doc"
   },
   "dependencies": {
-    "fp-ts": "^2.2.0"
+    "@types/lodash": "^4.14.149",
+    "fp-ts": "^2.2.0",
+    "lodash": "^4.17.15"
   },
   "devDependencies": {
     "@types/jest": "^24.0.23",
