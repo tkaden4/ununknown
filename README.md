@@ -4,7 +4,7 @@
 
 Typesafe combinatorial data validators for typescript using [fp-ts](https://gcanti.github.io/fp-ts/).
 
-Documentation is available [here](https://www.tkaden.net/ununknown), although `404` errors are currently being resolved.
+Documentation is available [here](https://www.tkaden.net/ununknown).
 
 ## Installation
 
