@@ -89,7 +89,7 @@
 				<a href="#example" id="example" style="color: inherit; text-decoration: none;">
 					<h2>Example</h2>
 				</a>
-				<pre><code class="language-typescript"><span class="hljs-keyword">import</span> { recursive, Validator, object, field, thing, array } <span class="hljs-keyword">from</span> <span class="hljs-string">"../src"</span>;
+				<pre><code class="language-typescript"><span class="hljs-keyword">import</span> { recursive, Validator, object, field, thing, array, validateEx, isSuccess } <span class="hljs-keyword">from</span> <span class="hljs-string">"ununknown"</span>;
 
 <span class="hljs-keyword">interface</span> Person {
   name: {
@@ -111,7 +111,30 @@
     age: field.optional(thing.is.number),
     children: field.required(array.of(personValidator))
   })
-);</code></pre>
+);
+
+<span class="hljs-comment">// Check if validation succeeded</span>
+
+<span class="hljs-keyword">const</span> test: <span class="hljs-built_in">any</span> = {
+  name: {
+    first: <span class="hljs-string">"Kaden"</span>,
+    last: <span class="hljs-string">"Thomas"</span>
+  },
+  age: <span class="hljs-number">0</span>,
+  children: []
+};
+
+<span class="hljs-comment">// Throws an error with result.left if it fails</span>
+<span class="hljs-keyword">const</span> result: Person = validateEx(test, personValidator);
+
+<span class="hljs-comment">// Non-exception based</span>
+<span class="hljs-keyword">const</span> validateResult = personValidator(test);
+<span class="hljs-keyword">if</span> (isSuccess(result)) {
+  <span class="hljs-keyword">const</span> o: Person = result.right;
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"succeeded"</span>);
+} <span class="hljs-keyword">else</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"failed with error: "</span>, result.left);
+}</code></pre>
 				<a href="#caveats" id="caveats" style="color: inherit; text-decoration: none;">
 					<h2>Caveats</h2>
 				</a>

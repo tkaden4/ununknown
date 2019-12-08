@@ -1,6 +1,6 @@
 {
   "name": "ununknown",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Typesafe combinatorial data validators for typescript.",
   "repository": "https://github.com/tkaden4/ts-data",
   "author": "Kaden Thomas <thomas.kaden4@outlook.com>",
