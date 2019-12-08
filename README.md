@@ -26,7 +26,7 @@ in several situations, including, if not limited to:
 ## Example
 
 ```typescript
-import { recursive, Validator, object, field, thing, array } from "../src";
+import { recursive, Validator, object, field, thing, array, validateEx, isSuccess } from "ununknown";
 
 interface Person {
   name: {
@@ -49,6 +49,29 @@ const personValidator: Validator<Person> = recursive(() =>
     children: field.required(array.of(personValidator))
   })
 );
+
+// Check if validation succeeded
+
+const test: any = {
+  name: {
+    first: "Kaden",
+    last: "Thomas"
+  },
+  age: 0,
+  children: []
+};
+
+// Throws an error with result.left if it fails
+const result: Person = validateEx(test, personValidator);
+
+// Non-exception based
+const validateResult = personValidator(test);
+if (isSuccess(result)) {
+  const o: Person = result.right;
+  console.log("succeeded");
+} else {
+  console.log("failed with error: ", result.left);
+}
 ```
 
 ## Caveats

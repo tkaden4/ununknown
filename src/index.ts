@@ -2,7 +2,7 @@ import { Either, left, right, isLeft, chain, isRight, Right, Left } from "fp-ts/
 import _ from "lodash";
 import { difference } from "fp-ts/lib/Set";
 import { eqString } from "fp-ts/lib/Eq";
-import { TypeNameToPrimitive, PrimitiveString, Primitive } from "./util";
+import { TypeNameToPrimitive, PrimitiveString } from "./util";
 
 export type ParseError = string;
 export type ValidateResult<Error, R> = Either<Error, R>;
@@ -143,7 +143,9 @@ export module thing {
         type: K
       ): Validator<TypeNameToPrimitive<Exclude<PrimitiveString, K>>> {
         return o =>
-          isFailure(is.of(type)(o)) ? right(o as any) : left(`${JSON.stringify(o)} is of type ${JSON.stringify(type)}`);
+          isFailure(is.of(type)(o))
+            ? right(o as TypeNameToPrimitive<Exclude<PrimitiveString, K>>)
+            : left(`${JSON.stringify(o)} is of type ${JSON.stringify(type)}`);
       }
 
       export const symbol = of("symbol");
