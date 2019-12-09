@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "outDir": "./build.test/"
+  },
+  "extends": "./tsconfig.json",
+  "include": ["examples/**/*.ts"]
+}

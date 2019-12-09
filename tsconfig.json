@@ -6,6 +6,7 @@
     "alwaysStrict": true,
     "strictNullChecks": true,
     "noImplicitAny": true,
+    "strictFunctionTypes": true,
     "strict": true,
     "target": "es5",
     "esModuleInterop": true,

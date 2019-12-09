@@ -2,7 +2,7 @@
 
 # ununknown
 
-Typesafe combinatorial data validators for typescript using [fp-ts](https://gcanti.github.io/fp-ts/).
+Typesafe combinatorial data validators/parsers for typescript using [fp-ts](https://gcanti.github.io/fp-ts/).
 
 Documentation is available [here](https://www.tkaden.net/ununknown).
 
@@ -23,10 +23,55 @@ in several situations, including, if not limited to:
 - Javascript Interop
 - JSON RPCs
 
+## `Functor`, `Applicative`, and `Monad` instances
+
+Instances for `Functor`, `Applicative`, and `Monad` are available so that you can do high-level parsing:
+
+```typescript
+// Converts from a string to a number
+const numberFromString: Parser<number> = chain(thing.is.string, (s: string) =>
+  +s === NaN ? fail(`${s} is not a number`) : succeed(+s)
+);
+
+interface Date {
+  year: number;
+  month: number;
+  day: number;
+}
+
+// Validator/parser that takes in objects of the following form:
+/**
+ * {
+ *   year: "...",
+ *   month: "...",
+ *   day: "..."
+ * }
+ * and gives us back an object of type Date, with fields checked for validity
+ * */
+const simpleDateValidator: Parser<Date> = object.just({
+  year: required(compose(numberFromString, number.range.inclusive(0, 4000))),
+  month: required(compose(numberFromString, number.range.inclusive(1, 12))),
+  day: required(compose(numberFromString, number.range.inclusive(0, 31)))
+});
+
+// Or if we want parsing that is more context-sensitive (correct number of days depending on the month)
+const dateValidator: Parser<Date> = chain(
+  object.just({
+    year: field.required(compose(numberFromString, number.range.inclusive(0, 4000))),
+    month: field.required(compose(numberFromString, number.range.inclusive(1, 12))),
+    day: field.required(numberFromString)
+  }),
+  ({ year, month, day }) =>
+    correctDaysForMonth(month, day) // definition elided for convenience
+      ? succeed({ year, month, day })
+      : fail(`${day} is not a valid number of days for month ${month}`)
+);
+```
+
 ## Example
 
 ```typescript
-import { recursive, Validator, object, field, thing, array, validateEx, isSuccess } from "ununknown";
+import { recursive, Parser, object, field, thing, array, runParser, runParserEx, isSuccess } from "ununknown";
 
 interface Person {
   name: {
@@ -37,7 +82,7 @@ interface Person {
   children: Array<Person>;
 }
 
-const personValidator: Validator<Person> = recursive(() =>
+const personValidator: Parser<Person> = recursive(() =>
   object.just({
     name: field.required(
       object.just({
@@ -57,20 +102,20 @@ const test: any = {
     first: "Kaden",
     last: "Thomas"
   },
-  age: 0,
+  age: 20,
   children: []
 };
 
 // Throws an error with result.left if it fails
-const result: Person = validateEx(test, personValidator);
+const result: Person = runParserEx(test, personValidator);
 
 // Non-exception based
-const validateResult = personValidator(test);
-if (isSuccess(result)) {
-  const o: Person = result.right;
+const parseResult = runParser(personValidator, test);
+if (isSuccess(parseResult)) {
+  const o: Person = parseResult.right;
   console.log("succeeded");
 } else {
-  console.log("failed with error: ", result.left);
+  console.log("failed with error: ", parseResult.left);
 }
 ```
 

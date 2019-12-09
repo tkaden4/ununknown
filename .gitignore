@@ -6,6 +6,9 @@ yarn-error.log*
 
 build
 
+# 
+build.test/
+
 # Dependency directories
 node_modules/
 

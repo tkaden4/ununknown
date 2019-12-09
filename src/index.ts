@@ -1,119 +1,159 @@
-import { Either, left, right, isLeft, chain, isRight, Right, Left } from "fp-ts/lib/Either";
+import { left, right, isRight, isLeft, Either, Right, Left } from "fp-ts/lib/Either";
+import * as E from "fp-ts/lib/Either";
 import _ from "lodash";
 import { difference } from "fp-ts/lib/Set";
 import { eqString } from "fp-ts/lib/Eq";
 import { TypeNameToPrimitive, PrimitiveString } from "./util";
+import { optionalCallExpression } from "@babel/types";
 
-export type ParseError = string;
-export type ValidateResult<Error, R> = Either<Error, R>;
-export type Validator<R, E = ParseError> = (o: unknown) => ValidateResult<E, R>;
+export type ParseResult<Error, R> = Either<Error, R>;
+export type Parser<R, E = string, O = unknown> = { runParser: (o: O) => ParseResult<E, R> };
 
-export type FieldValidator<FieldName extends string | number | symbol, R> = (o: FieldName) => Validator<R>;
+export const from = <R, E, O>(parser: (o: O) => ParseResult<E, R>) => ({ runParser: parser });
 
-export type FieldValidatorResult<D> = D extends FieldValidator<infer _, infer R> ? R : never;
+export function succeed<R, E, B>(result: R): Parser<R, E, B> {
+  return (of(result) as unknown) as Parser<R, E, B>;
+}
 
-export type OptionalKeys<Fields> = {
-  [X in keyof Fields]: Fields[X] extends FieldValidator<infer _, infer R> ? (R extends undefined ? X : never) : never;
-}[keyof Fields];
+export function fail<R, E, B>(error: E): Parser<R, E, B> {
+  return from(_ => left(error));
+}
 
-export type NonOptionalKeys<Fields> = Exclude<keyof Fields, OptionalKeys<Fields>>;
+export function isSuccess<R, E>(result: ParseResult<E, R>): result is Right<R> {
+  return isRight(result);
+}
 
-export type FieldsResult<Fields> = {
-  [X in OptionalKeys<Fields>]?: FieldValidatorResult<Fields[X]>;
-} &
-  {
-    [X in NonOptionalKeys<Fields>]: FieldValidatorResult<Fields[X]>;
-  };
+export function isFailure<R, E>(result: ParseResult<E, R>): result is Left<E> {
+  return isLeft(result);
+}
+
+// TODO fix instances to work with fp-ts
+
+// export const URI = "Parser";
+// export type URI = typeof URI;
+
+// declare module "fp-ts/lib/HKT" {
+//   interface URItoKind<A> {
+//     Parser: Parser<A>;
+//   }
+// }
+
+export const parserFunctor = {
+  // URI,
+  map: <A, E, B, C>(v: Parser<A, E, C>, f: (a: A) => B): Parser<B, E, C> => from((o: C) => E.map(f)(v.runParser(o)))
+};
+
+export const parserApplicative = {
+  ...parserFunctor,
+  of: <A, E, C>(a: A): Parser<A, E, C> => from((_: C) => right(a)),
+  ap: <A, B, E, C>(fab: Parser<(a: A) => B, E, C>, a: Parser<A, E, C>): Parser<B, E, C> =>
+    from((o: C) => E.ap(a.runParser(o))(fab.runParser(o)))
+};
+
+export const parserMonad = {
+  ...parserApplicative,
+  chain: <A, B, E, C>(fa: Parser<A, E, C>, afb: (a: A) => Parser<B, E, C>): Parser<B, E, C> =>
+    from((o: C) => E.chain((a: A) => afb(a).runParser(o))(fa.runParser(o)))
+};
+
+export const map = parserMonad.map;
+export const of = parserMonad.of;
+export const ap = parserMonad.ap;
+export const chain = parserMonad.chain;
+
+export const compose = <A, B, C, E>(vb: Parser<B, E, A>, vc: Parser<C, E, B>): Parser<C, E, A> => {
+  return chain(vb, (b: B) => from((_: A) => vc.runParser(b)));
+};
 
 /**
  * Due to javascript not being a "lazy" language, we have to embed recursive references to
- * validators in a thunk, like so:
+ * parsers in a thunk, like so:
  *
  * @example
  * ```typescript
- * interface RoseTree {
+ * interface Trie {
  *   value: string;
- *   children: Array<RoseTree>;
+ *   children: Array<Trie>;
  * }
  *
- * const roseTreeValidator: Validator<RoseTree> = recursive(() =>
+ * const trieParser: Parser<Trie> = recursive(() =>
  *   object.just({
  *     value: field.required(thing.is.string),
- *     children: field.required(array.of(roseTreeValidator))
+ *     children: field.required(array.of(trieParser))
  *   })
  * );
  * ```
  *
  * @param body A thunk that returns a parser, possibly one that references itself.
  */
-export function recursive<R>(body: () => Validator<R>): Validator<R> {
-  return o => body()(o);
+export function recursive<R, E, I>(body: () => Parser<R, E, I>): Parser<R, E, I> {
+  return from(o => body().runParser(o));
 }
 
 /**
- * Run two validators on an unknown, failing if either fail and succeeding when both succeed.
+ * Run two parsers, failing if either fail and succeeding when both succeed.
  */
-export function both<T, U>(fst: Validator<T>, snd: Validator<U>): Validator<T & U> {
-  return o => chain(() => snd(o) as Either<string, T & U>)(fst(o));
+export function both<T, U, E, I>(fst: Parser<T, E, I>, snd: Parser<U, E, I>): Parser<[T, U], E, I> {
+  return ap(
+    map(fst, (t: T) => (u: U) => [t, u]),
+    snd
+  );
 }
 
 /**
- * Run two validators on an unknown, succeeding if either succeed and failing if both fail.
+ * Run two parsers on an unknown, succeeding if either succeed and failing if both fail.
  */
-export function or<T, U>(fst: Validator<T>, snd: Validator<U>): Validator<T | U> {
-  return o => {
-    const fres = fst(o);
-    const sres = snd(o);
-    if (isFailure(fres) && isFailure(sres)) {
-      return left(`${fres.left} and ${sres.left}`);
-    } else {
-      return right(o as T | U);
-    }
-  };
+export function or<T, U, B>(fst: Parser<T, string, B>, snd: Parser<U, string, B>): Parser<T | U, string, B> {
+  return from(o => {
+    const fres = fst.runParser(o);
+    const sres = snd.runParser(o);
+    return isSuccess(fres) ? fres : isSuccess(sres) ? sres : left(`${fres.left} and ${sres.left}`);
+  });
 }
 
 /**
- * Given an anonymous object and a validator, return the object or throw an exception if validation fails.
+ * Given an object of type B, parse out an object of type R with the possibility of errors of type E
+ */
+export function runParser<R, E, B>(parser: Parser<R, E, B>, b: B) {
+  return parser.runParser(b);
+}
+
+/**
+ * Given an anonymous object and a parser, return the object or throw an exception if parsing fails.
  *
- * @param o value to validate
- * @param validator the validator to run
+ * @param o value to parse from
+ * @param parser the parser to run
  */
-export function validateEx<R>(o: unknown, validator: Validator<R>): R | never {
-  const result = validator(o);
+export function runParserEx<R, E extends { toString(): string }, B>(o: B, parser: Parser<R, E, B>): R | never {
+  const result = parser.runParser(o);
   if (isFailure(result)) {
-    throw new Error(result.left);
+    throw new Error(result.left.toString());
   }
   return result.right;
 }
 
-export function isSuccess<R, E>(result: ValidateResult<E, R>): result is Right<R> {
-  return isRight(result);
-}
-
-export function isFailure<R, E>(result: ValidateResult<E, R>): result is Left<E> {
-  return isLeft(result);
-}
-
-export const predicate = <K extends PrimitiveString>(type: K) => (
+export const predicate = <K extends PrimitiveString, I>(type: K) => (
   p: (s: TypeNameToPrimitive<K>) => boolean,
   template: (s: TypeNameToPrimitive<K>) => string = s => `${s} did not satisfy custom constraint`
-): Validator<TypeNameToPrimitive<K>> => o =>
-  chain((s: TypeNameToPrimitive<K>) => (p(s) ? right(s) : left(template(s))))(thing.is.of(type)(o));
+): Parser<TypeNameToPrimitive<K>, string, I> =>
+  from(o =>
+    E.chain((s: TypeNameToPrimitive<K>) => (p(s) ? right(s) : left(template(s))))(thing.is.of(type).runParser(o))
+  );
 
-export module thing {
-  export module is {
+export namespace thing {
+  export namespace is {
     /**
      * Ensure that the input value is one the many primitive javascript objects.
      * @param type string representing the `typeof` string for the object.
      */
-    export function of<K extends PrimitiveString>(type: K): Validator<TypeNameToPrimitive<K>> {
-      return o => {
+    export function of<K extends PrimitiveString, I>(type: K): Parser<TypeNameToPrimitive<K>, string, I> {
+      return from(o => {
         if (typeof o === type) {
-          return right(o as any);
+          return right((o as unknown) as TypeNameToPrimitive<K>);
         } else {
           return left(`${JSON.stringify(o)} is not of type ${JSON.stringify(type)}`);
         }
-      };
+      });
     }
 
     export const symbol = of("symbol");
@@ -129,23 +169,27 @@ export module thing {
     /**
      * Check that the input value is equal to `object` (_.isEqual, works with objects).
      */
-    export function equalTo<K>(object: K): Validator<K> {
-      return o =>
-        _.isEqual(object, o) ? right(o as K) : left(`${JSON.stringify(o)} is not equal to ${JSON.stringify(object)}`);
+    export function equalTo<K, I>(object: K): Parser<K, string, I> {
+      return from(o =>
+        _.isEqual(object, o)
+          ? right((o as unknown) as K)
+          : left(`${JSON.stringify(o)} is not equal to ${JSON.stringify(object)}`)
+      );
     }
 
-    export module not {
+    export namespace not {
       /**
        * Ensure that the input value is not one the specific primitive javascript objects.
        * @param type string representing the `typeof` string for the object to exclude.
        */
-      export function of<K extends PrimitiveString>(
+      export function of<K extends PrimitiveString, I>(
         type: K
-      ): Validator<TypeNameToPrimitive<Exclude<PrimitiveString, K>>> {
-        return o =>
-          isFailure(is.of(type)(o))
-            ? right(o as TypeNameToPrimitive<Exclude<PrimitiveString, K>>)
-            : left(`${JSON.stringify(o)} is of type ${JSON.stringify(type)}`);
+      ): Parser<TypeNameToPrimitive<Exclude<PrimitiveString, K>>, string, I> {
+        return from(o =>
+          isFailure(is.of(type).runParser(o))
+            ? right((o as unknown) as TypeNameToPrimitive<Exclude<PrimitiveString, K>>)
+            : left(`${JSON.stringify(o)} is of type ${JSON.stringify(type)}`)
+        );
       }
 
       export const symbol = of("symbol");
@@ -157,18 +201,6 @@ export module thing {
       export const boolean = of("boolean");
       export const number = of("number");
       export const array = predicate("object")(Array.isArray);
-
-      // type Not<K> = K extends Primitive ? Exclude<> : never;
-
-      /**
-       * Check that the input value is not equal to `object` (`===`).
-       */
-      // export function equalTo<K>(object: K): Validator<K> {
-      //   return o =>
-      //     isFailure(is.equalTo(object)(o))
-      //       ? right(o as K)
-      //       : left(`${JSON.stringify(o)} is equal to ${JSON.stringify(object)}`);
-      // }
     }
   }
 }
@@ -176,71 +208,113 @@ export module thing {
 // dummy variable so we can define `predicate` in child modules
 const p = predicate;
 
-export module boolean {
+export namespace boolean {
   export const isTrue = predicate("boolean")(
     s => s,
     () => `expected true, got false`
-  ) as Validator<true>;
+  ) as Parser<true>;
 
   export const isFalse = predicate("boolean")(
     s => !s,
     () => `expected false, got true`
-  ) as Validator<false>;
+  ) as Parser<false>;
 }
 
-export module field {
-  export function optional<F extends string | number | symbol, R>(
-    validator: Validator<R>
-  ): FieldValidator<F, R | undefined> {
-    return field => o => {
-      if (field in (o as any)) {
-        return validator((o as any)[field]);
-      } else {
-        return right(undefined);
+export namespace field {
+  export type Field = string | number | symbol;
+  export type Fields<K> = { [X in keyof K]: X }[keyof K];
+  export type FieldType = "dependent" | "required" | "optional";
+
+  export type FieldParser<FieldName extends string | number | symbol, R, E = string, I = object> =
+    | {
+        type: "required" | "optional";
+        run: (o: FieldName) => Parser<R, E, I>;
       }
+    | { type: "dependent"; on: Array<string>; run: (o: FieldName) => Parser<R, E, I> };
+
+  export type FieldParserResult<D> = D extends FieldParser<infer _, infer R> ? R : never;
+
+  export type OptionalKeys<Fields> = {
+    [X in keyof Fields]: Fields[X] extends FieldParser<infer _, infer R> ? (R extends undefined ? X : never) : never;
+  }[keyof Fields];
+
+  export type NonOptionalKeys<Fields> = Exclude<keyof Fields, OptionalKeys<Fields>>;
+
+  export type FieldsResult<Fields> = {
+    [X in OptionalKeys<Fields>]?: FieldParserResult<Fields[X]>;
+  } &
+    {
+      [X in NonOptionalKeys<Fields>]: FieldParserResult<Fields[X]>;
+    };
+
+  export function optional<F extends Field, R, E>(parser: Parser<R, E, object>): FieldParser<F, R | undefined, E> {
+    return {
+      type: "optional",
+      run: field =>
+        from(o => {
+          if (field in (o as any)) {
+            return parser.runParser((o as any)[field]);
+          } else {
+            return right(undefined);
+          }
+        })
     };
   }
 
-  export function required<F extends string | number | symbol, R>(validator: Validator<R>): FieldValidator<F, R> {
-    return field => o => {
-      if (field in (o as any)) {
-        return validator((o as any)[field]);
-      } else {
-        return left(`${JSON.stringify(o)} does not contain field ${field}`);
-      }
+  export function required<F extends Field, FieldResult>(parser: Parser<FieldResult>): FieldParser<F, FieldResult> {
+    return {
+      type: "required",
+      run: field =>
+        from(o => {
+          if (field in (o as any)) {
+            return parser.runParser((o as any)[field]);
+          } else {
+            return left(`${JSON.stringify(o)} does not contain field ${JSON.stringify(field)}`);
+          }
+        })
     };
   }
 }
 
-export module bigint {
+export namespace bigint {
   export const predicate = p("bigint");
 }
 
-export module undef {}
+export namespace undef {}
 
-export module object {
+export namespace object {
   export const predicate = p("object");
 
   /**
    * Check that object satisfies certain conditions on it's fields.
-   * Does not ensure that the object has more fields than listed in `fieldsValidators`.
+   * Does not ensure that the object has more fields than listed in `fieldParsers`.
    *
-   * @param fieldsValidators validators for each field.
+   * @param fieldParsers validators for each field.
    */
   export function has<Fields>(
-    fieldsValidators: { [X in keyof Fields]: FieldValidator<X, Fields[X]> }
-  ): Validator<{ [X in keyof Fields]: Fields[X] }> {
-    return o =>
-      chain(obj => {
-        // Todo use Validated to improve errors
-        for (const fieldName in fieldsValidators) {
-          const result = fieldsValidators[fieldName](fieldName)(obj);
-          if (isFailure(result)) {
-            return result;
-          }
+    fieldParsers: { [X in keyof Fields]: field.FieldParser<X, Fields[X]> }
+  ): Parser<field.FieldsResult<{ [X in keyof Fields]: field.FieldParser<X, Fields[X]> }>> {
+    return chain(thing.is.object, (obj: object) => {
+      // Todo use Validated to improve errors
+      const endResult: any = {};
+      for (const fieldName in fieldParsers) {
+        const parser = fieldParsers[fieldName];
+        switch (parser.type) {
+          case "dependent":
+            break;
+          case "optional":
+            break;
+          case "required":
+            break;
         }
-        return right(obj as { [X in keyof Fields]: Fields[X] });
-      })(thing.is.object(o));
+        const result = fieldParsers[fieldName].run(fieldName).runParser(obj);
+        if (isFailure(result)) {
+          return fail(result.left);
+        }
+        endResult[fieldName] = result.right;
+      }
+      return succeed(endResult as field.FieldsResult<{ [X in keyof Fields]: field.FieldParser<X, Fields[X]> }>);
+    });
   }
 
   /**
@@ -254,7 +328,7 @@ export module object {
    *   b: number;
    * }
    *
-   * const rbgColorValidator: Validator<RGBColor> = object.just({
+   * const rgbColorParser: Parser<RGBColor> = object.just({
    *   r: field.required(number.range.inclusive(0, 255)),
    *   g: field.required(number.range.inclusive(0, 255)),
    *   b: field.required(number.range.inclusive(0, 255))
@@ -262,34 +336,35 @@ export module object {
    * ```
    */
   export function just<Fields>(
-    fieldsValidators: { [X in keyof Fields]: FieldValidator<X, Fields[X]> }
-  ): Validator<FieldsResult<{ [X in keyof Fields]: FieldValidator<X, Fields[X]> }>> {
-    return o =>
-      chain((all: Fields) => {
+    fieldParsers: { [X in keyof Fields]: field.FieldParser<X, Fields[X]> }
+  ): Parser<field.FieldsResult<{ [X in keyof Fields]: field.FieldParser<X, Fields[X]> }>> {
+    return from(o =>
+      E.chain((all: field.FieldsResult<{ [X in keyof Fields]: field.FieldParser<X, Fields[X]> }>) => {
         const thisKeys = new Set(Object.keys(all as any));
-        const validatorKeys = new Set(Object.keys(fieldsValidators));
-        const diff = difference(eqString)(thisKeys, validatorKeys);
-        if (!Array.from(diff).every(x => x in fieldsValidators)) {
+        const parserKeys = new Set(Object.keys(fieldParsers));
+        const diff = difference(eqString)(thisKeys, parserKeys);
+        if (!Array.from(diff).every(x => x in fieldParsers)) {
           return left(
             `${JSON.stringify(all)} has extra fields not present in ${JSON.stringify(
-              Object.keys(fieldsValidators)
+              Object.keys(fieldParsers)
             )}: ${JSON.stringify(diff)}`
           );
         }
         return right(all as any);
-      })(has(fieldsValidators)(o));
+      })(has(fieldParsers).runParser(o))
+    );
   }
 }
 
-export module func {
+export namespace func {
   export const predicate = p("function");
 }
 
-export module symbol {
+export namespace symbol {
   export const predicate = p("symbol");
 }
 
-export module string {
+export namespace string {
   export const predicate = p("string");
 
   export const length = (n: number) =>
@@ -305,10 +380,10 @@ export module string {
     );
 }
 
-export module number {
+export namespace number {
   export const predicate = p("number");
 
-  export module range {
+  export namespace range {
     export const exclusive = (from: number, to: number) =>
       predicate(
         n => n > from && n < to,
@@ -323,16 +398,16 @@ export module number {
   }
 }
 
-export module array {
+export namespace array {
   /**
    * Check that the input value is an array satisfying constraints.
    *
-   * @param validator Check for each element of the input array.
+   * @param parser Check for each element of the input array.
    */
-  export function of<Value>(validator: Validator<Value>): Validator<Array<Value>> {
-    return o => {
+  export function of<Value, Input>(parser: Parser<Value>): Parser<Array<Value>, string, Input> {
+    return from(o => {
       if (Array.isArray(o)) {
-        const results = o.map(each => validator(each)).filter(isFailure);
+        const results = o.map(each => parser.runParser(each)).filter(isFailure);
         if (results.length > 0) {
           return left(`${JSON.stringify(o)} is an invalid array: ${results.map(x => x.left).join(", ")}`);
         } else {
@@ -341,6 +416,6 @@ export module array {
       } else {
         return left(`${JSON.stringify(o)} is not an array`);
       }
-    };
+    });
   }
 }

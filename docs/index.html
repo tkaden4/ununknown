@@ -68,7 +68,7 @@
 				<a href="#ununknown" id="ununknown" style="color: inherit; text-decoration: none;">
 					<h1>ununknown</h1>
 				</a>
-				<p>Typesafe combinatorial data validators for typescript using <a href="https://gcanti.github.io/fp-ts/">fp-ts</a>.</p>
+				<p>Typesafe combinatorial data validators/parsers for typescript using <a href="https://gcanti.github.io/fp-ts/">fp-ts</a>.</p>
 				<p>Documentation is available <a href="https://www.tkaden.net/ununknown">here</a>.</p>
 				<a href="#installation" id="installation" style="color: inherit; text-decoration: none;">
 					<h2>Installation</h2>
@@ -86,10 +86,52 @@
 					<li>Javascript Interop</li>
 					<li>JSON RPCs</li>
 				</ul>
+				<a href="#codefunctorcode-codeapplicativecode-and-codemonadcode-instances" id="codefunctorcode-codeapplicativecode-and-codemonadcode-instances" style="color: inherit; text-decoration: none;">
+					<h2><code>Functor</code>, <code>Applicative</code>, and <code>Monad</code> instances</h2>
+				</a>
+				<p>Instances for <code>Functor</code>, <code>Applicative</code>, and <code>Monad</code> are available so that you can do high-level parsing:</p>
+				<pre><code class="language-typescript"><span class="hljs-comment">// Converts from a string to a number</span>
+<span class="hljs-keyword">const</span> numberFromString: Parser&lt;<span class="hljs-built_in">number</span>&gt; = chain(thing.is.string, <span class="hljs-function">(<span class="hljs-params">s: <span class="hljs-built_in">string</span></span>) =&gt;</span>
+  +s === <span class="hljs-literal">NaN</span> ? fail(<span class="hljs-string">`<span class="hljs-subst">${s}</span> is not a number`</span>) : succeed(+s)
+);
+
+<span class="hljs-keyword">interface</span> Date {
+  year: <span class="hljs-built_in">number</span>;
+  month: <span class="hljs-built_in">number</span>;
+  day: <span class="hljs-built_in">number</span>;
+}
+
+<span class="hljs-comment">// Validator/parser that takes in objects of the following form:</span>
+<span class="hljs-comment">/**
+ * {
+ *   year: "...",
+ *   month: "...",
+ *   day: "..."
+ * }
+ * and gives us back an object of type Date, with fields checked for validity
+ * */</span>
+<span class="hljs-keyword">const</span> simpleDateValidator: Parser&lt;<span class="hljs-built_in">Date</span>&gt; = object.just({
+  year: required(compose(numberFromString, <span class="hljs-built_in">number</span>.range.inclusive(<span class="hljs-number">0</span>, <span class="hljs-number">4000</span>))),
+  month: required(compose(numberFromString, <span class="hljs-built_in">number</span>.range.inclusive(<span class="hljs-number">1</span>, <span class="hljs-number">12</span>))),
+  day: required(compose(numberFromString, <span class="hljs-built_in">number</span>.range.inclusive(<span class="hljs-number">0</span>, <span class="hljs-number">31</span>)))
+});
+
+<span class="hljs-comment">// Or if we want parsing that is more context-sensitive (correct number of days depending on the month)</span>
+<span class="hljs-keyword">const</span> dateValidator: Parser&lt;<span class="hljs-built_in">Date</span>&gt; = chain(
+  object.just({
+    year: field.required(compose(numberFromString, <span class="hljs-built_in">number</span>.range.inclusive(<span class="hljs-number">0</span>, <span class="hljs-number">4000</span>))),
+    month: field.required(compose(numberFromString, <span class="hljs-built_in">number</span>.range.inclusive(<span class="hljs-number">1</span>, <span class="hljs-number">12</span>))),
+    day: field.required(numberFromString)
+  }),
+  <span class="hljs-function">(<span class="hljs-params">{ year, month, day }</span>) =&gt;</span>
+    correctDaysForMonth(month, day) <span class="hljs-comment">// definition elided for convenience</span>
+      ? succeed({ year, month, day })
+      : fail(<span class="hljs-string">`<span class="hljs-subst">${day}</span> is not a valid number of days for month <span class="hljs-subst">${month}</span>`</span>)
+);</code></pre>
 				<a href="#example" id="example" style="color: inherit; text-decoration: none;">
 					<h2>Example</h2>
 				</a>
-				<pre><code class="language-typescript"><span class="hljs-keyword">import</span> { recursive, Validator, object, field, thing, array, validateEx, isSuccess } <span class="hljs-keyword">from</span> <span class="hljs-string">"ununknown"</span>;
+				<pre><code class="language-typescript"><span class="hljs-keyword">import</span> { recursive, Parser, object, field, thing, array, runParser, runParserEx, isSuccess } <span class="hljs-keyword">from</span> <span class="hljs-string">"ununknown"</span>;
 
 <span class="hljs-keyword">interface</span> Person {
   name: {
@@ -100,7 +142,7 @@
   children: <span class="hljs-built_in">Array</span>&lt;Person&gt;;
 }
 
-<span class="hljs-keyword">const</span> personValidator: Validator&lt;Person&gt; = recursive(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span>
+<span class="hljs-keyword">const</span> personValidator: Parser&lt;Person&gt; = recursive(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span>
   object.just({
     name: field.required(
       object.just({
@@ -120,20 +162,20 @@
     first: <span class="hljs-string">"Kaden"</span>,
     last: <span class="hljs-string">"Thomas"</span>
   },
-  age: <span class="hljs-number">0</span>,
+  age: <span class="hljs-number">20</span>,
   children: []
 };
 
 <span class="hljs-comment">// Throws an error with result.left if it fails</span>
-<span class="hljs-keyword">const</span> result: Person = validateEx(test, personValidator);
+<span class="hljs-keyword">const</span> result: Person = runParserEx(test, personValidator);
 
 <span class="hljs-comment">// Non-exception based</span>
-<span class="hljs-keyword">const</span> validateResult = personValidator(test);
-<span class="hljs-keyword">if</span> (isSuccess(result)) {
-  <span class="hljs-keyword">const</span> o: Person = result.right;
+<span class="hljs-keyword">const</span> parseResult = runParser(personValidator, test);
+<span class="hljs-keyword">if</span> (isSuccess(parseResult)) {
+  <span class="hljs-keyword">const</span> o: Person = parseResult.right;
   <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"succeeded"</span>);
 } <span class="hljs-keyword">else</span> {
-  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"failed with error: "</span>, result.left);
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"failed with error: "</span>, parseResult.left);
 }</code></pre>
 				<a href="#caveats" id="caveats" style="color: inherit; text-decoration: none;">
 					<h2>Caveats</h2>
