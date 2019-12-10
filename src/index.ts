@@ -4,10 +4,10 @@ import _ from "lodash";
 import { difference } from "fp-ts/lib/Set";
 import { eqString } from "fp-ts/lib/Eq";
 import { TypeNameToPrimitive, PrimitiveString } from "./util";
-import { optionalCallExpression } from "@babel/types";
 
 export type ParseResult<Error, R> = Either<Error, R>;
 export type Parser<R, E = string, O = unknown> = { runParser: (o: O) => ParseResult<E, R> };
+export type ParserReturnType<P> = P extends Parser<infer R, infer _, infer _> ? R : never;
 
 export const from = <R, E, O>(parser: (o: O) => ParseResult<E, R>) => ({ runParser: parser });
 
