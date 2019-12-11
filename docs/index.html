@@ -167,7 +167,7 @@
 };
 
 <span class="hljs-comment">// Throws an error with result.left if it fails</span>
-<span class="hljs-keyword">const</span> result: Person = runParserEx(test, personValidator);
+<span class="hljs-keyword">const</span> result: Person = runParserEx(personValidator, test);
 
 <span class="hljs-comment">// Non-exception based</span>
 <span class="hljs-keyword">const</span> parseResult = runParser(personValidator, test);
