@@ -124,7 +124,7 @@ export function runParser<R, E, B>(parser: Parser<R, E, B>, b: B) {
  * @param o value to parse from
  * @param parser the parser to run
  */
-export function runParserEx<R, E extends { toString(): string }, B>(o: B, parser: Parser<R, E, B>): R | never {
+export function runParserEx<R, E extends { toString(): string }, B>(parser: Parser<R, E, B>, o: B): R | never {
   const result = parser.runParser(o);
   if (isFailure(result)) {
     throw new Error(result.left.toString());
@@ -340,7 +340,7 @@ export namespace object {
   ): Parser<field.FieldsResult<{ [X in keyof Fields]: field.FieldParser<X, Fields[X]> }>> {
     return from(o =>
       E.chain((all: field.FieldsResult<{ [X in keyof Fields]: field.FieldParser<X, Fields[X]> }>) => {
-        const thisKeys = new Set(Object.keys(all as any));
+        const thisKeys = new Set(Object.keys(o as any));
         const parserKeys = new Set(Object.keys(fieldParsers));
         const diff = difference(eqString)(thisKeys, parserKeys);
         if (!Array.from(diff).every(x => x in fieldParsers)) {

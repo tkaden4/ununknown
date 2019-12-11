@@ -107,7 +107,7 @@ const test: any = {
 };
 
 // Throws an error with result.left if it fails
-const result: Person = runParserEx(test, personValidator);
+const result: Person = runParserEx(personValidator, test);
 
 // Non-exception based
 const parseResult = runParser(personValidator, test);

@@ -10,7 +10,8 @@ import {
   chain,
   succeed,
   fail,
-  compose
+  compose,
+  runParser
 } from "./index";
 
 describe("primitive validation", () => {
@@ -83,6 +84,17 @@ describe("structured validation", () => {
     expect(isSuccess(rbgColorValidator.runParser({ r: 0, g: 0, b: -1 }))).toBeFalsy();
     expect(isSuccess(rbgColorValidator.runParser({ r: 0, g: 0 }))).toBeFalsy();
     expect(isSuccess(rbgColorValidator.runParser({ r: 30000, g: 256, b: 256 }))).toBeFalsy();
+  });
+
+  test("no extra fields", () => {
+    const a = {
+      foobar: 0,
+      singus: ""
+    };
+    const aParser = object.just({
+      foobar: field.required(thing.is.number)
+    });
+    expect(isSuccess(runParser(aParser, a))).toBeFalsy();
   });
 
   test("trie", () => {
