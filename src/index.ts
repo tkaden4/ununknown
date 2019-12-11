@@ -1,9 +1,9 @@
 import { left, right, isRight, isLeft, Either, Right, Left } from "fp-ts/lib/Either";
 import * as E from "fp-ts/lib/Either";
-import _ from "lodash";
 import { difference } from "fp-ts/lib/Set";
 import { eqString } from "fp-ts/lib/Eq";
 import { TypeNameToPrimitive, PrimitiveString } from "./util";
+import _ from "lodash";
 
 export type ParseResult<Error, R> = Either<Error, R>;
 export type Parser<R, E = string, O = unknown> = { runParser: (o: O) => ParseResult<E, R> };
@@ -232,7 +232,7 @@ export namespace field {
       }
     | { type: "dependent"; on: Array<string>; run: (o: FieldName) => Parser<R, E, I> };
 
-  export type FieldParserResult<D> = D extends FieldParser<infer _, infer R> ? R : never;
+  export type FieldParserResult<D> = D extends FieldParser<infer _, infer R, infer _, infer _> ? R : never;
 
   export type OptionalKeys<Fields> = {
     [X in keyof Fields]: Fields[X] extends FieldParser<infer _, infer R> ? (R extends undefined ? X : never) : never;
@@ -261,7 +261,9 @@ export namespace field {
     };
   }
 
-  export function required<F extends Field, FieldResult>(parser: Parser<FieldResult>): FieldParser<F, FieldResult> {
+  export function required<F extends Field, FieldResult, I>(
+    parser: Parser<FieldResult>
+  ): FieldParser<F, FieldResult, string, I> {
     return {
       type: "required",
       run: field =>
@@ -284,6 +286,31 @@ export namespace undef {}
 
 export namespace object {
   export const predicate = p("object");
+
+  export type FieldsParsers<Fields, Error, Input> = {
+    [X in keyof Fields]: field.FieldParser<X, Fields[X], Error, Input>;
+  };
+
+  // /**
+  //  * Object parsing with dependent fields.
+  //  *
+  //  */
+  // export function dependent<Fields, DependentFields, I>(
+  //   fieldParsers: FieldsParsers<Fields, string, I>,
+  //   dependent: { [X in keyof DependentFields]: (f: Fields) => field.FieldParser<X, DependentFields[X], string, Fields> }
+  // ): Parser<field.FieldsResult<FieldsParsers<Fields, string, I> & { [X in keyof DependentFields]: field.FieldParser<X, DependentFields[X], string, Fields> }>> {
+  //   return undefined as any;
+  // }
+
+  // const d = dependent(
+  //   {
+  //     year: field.required(thing.is.number),
+  //     month: field.required(thing.is.number)
+  //   },
+  //   {
+  //     day: ({ month }) => field.required(thing.is.number)
+  //   }
+  // );
 
   /**
    * Check that object satisfies certain conditions on it's fields.
