@@ -11,7 +11,8 @@ import {
   succeed,
   fail,
   compose,
-  runParser
+  runParser,
+  runParserEx
 } from "./index";
 
 describe("primitive validation", () => {
@@ -60,7 +61,7 @@ describe("structured validation", () => {
     b: number;
   }
 
-  const rbgColorValidator: Parser<RGBColor> = object.just({
+  const rgbColorValidator = object.just({
     r: field.required(number.range.inclusive(0, 255)),
     g: field.required(number.range.inclusive(0, 255)),
     b: field.required(number.range.inclusive(0, 255))
@@ -68,22 +69,22 @@ describe("structured validation", () => {
 
   test("rgb color", () => {
     // Valid
-    expect(isSuccess(rbgColorValidator.runParser({ r: 0, g: 0, b: 0 }))).toBeTruthy();
-    expect(isSuccess(rbgColorValidator.runParser({ r: 255, g: 0, b: 0 }))).toBeTruthy();
-    expect(isSuccess(rbgColorValidator.runParser({ r: 0, g: 255, b: 0 }))).toBeTruthy();
-    expect(isSuccess(rbgColorValidator.runParser({ r: 0, g: 0, b: 255 }))).toBeTruthy();
-    expect(isSuccess(rbgColorValidator.runParser({ r: 255, g: 255, b: 255 }))).toBeTruthy();
-    expect(isSuccess(rbgColorValidator.runParser({ r: 12, g: 244, b: 250 }))).toBeTruthy();
-    expect(isSuccess(rbgColorValidator.runParser({ r: 96, g: 84, b: 114 }))).toBeTruthy();
+    expect(isSuccess(rgbColorValidator.runParser({ r: 0, g: 0, b: 0 }))).toBeTruthy();
+    expect(isSuccess(rgbColorValidator.runParser({ r: 255, g: 0, b: 0 }))).toBeTruthy();
+    expect(isSuccess(rgbColorValidator.runParser({ r: 0, g: 255, b: 0 }))).toBeTruthy();
+    expect(isSuccess(rgbColorValidator.runParser({ r: 0, g: 0, b: 255 }))).toBeTruthy();
+    expect(isSuccess(rgbColorValidator.runParser({ r: 255, g: 255, b: 255 }))).toBeTruthy();
+    expect(isSuccess(rgbColorValidator.runParser({ r: 12, g: 244, b: 250 }))).toBeTruthy();
+    expect(isSuccess(rgbColorValidator.runParser({ r: 96, g: 84, b: 114 }))).toBeTruthy();
 
     // Not valid
-    expect(isSuccess(rbgColorValidator.runParser({ r: -1, g: 0, b: 0 }))).toBeFalsy();
-    expect(isSuccess(rbgColorValidator.runParser({ r: -1, g: -1, b: 0 }))).toBeFalsy();
-    expect(isSuccess(rbgColorValidator.runParser({ r: -1, g: -1, b: -1 }))).toBeFalsy();
-    expect(isSuccess(rbgColorValidator.runParser({ r: 0, g: -1, b: -1 }))).toBeFalsy();
-    expect(isSuccess(rbgColorValidator.runParser({ r: 0, g: 0, b: -1 }))).toBeFalsy();
-    expect(isSuccess(rbgColorValidator.runParser({ r: 0, g: 0 }))).toBeFalsy();
-    expect(isSuccess(rbgColorValidator.runParser({ r: 30000, g: 256, b: 256 }))).toBeFalsy();
+    expect(isSuccess(rgbColorValidator.runParser({ r: -1, g: 0, b: 0 }))).toBeFalsy();
+    expect(isSuccess(rgbColorValidator.runParser({ r: -1, g: -1, b: 0 }))).toBeFalsy();
+    expect(isSuccess(rgbColorValidator.runParser({ r: -1, g: -1, b: -1 }))).toBeFalsy();
+    expect(isSuccess(rgbColorValidator.runParser({ r: 0, g: -1, b: -1 }))).toBeFalsy();
+    expect(isSuccess(rgbColorValidator.runParser({ r: 0, g: 0, b: -1 }))).toBeFalsy();
+    expect(isSuccess(rgbColorValidator.runParser({ r: 0, g: 0 }))).toBeFalsy();
+    expect(isSuccess(rgbColorValidator.runParser({ r: 30000, g: 256, b: 256 }))).toBeFalsy();
   });
 
   test("no extra fields", () => {

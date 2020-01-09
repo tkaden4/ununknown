@@ -8,7 +8,7 @@
   "types": "build/index.d.ts",
   "main": "build/index.js",
   "scripts": {
-    "test": "jest && tsc -p test.tsconfig.json",
+    "test": "tsc -p test.tsconfig.json && jest",
     "doc": "typedoc --theme default --media media && touch docs/.nojekyll ",
     "format": "prettier src/**/*.ts --write",
     "prepare": "tsc",

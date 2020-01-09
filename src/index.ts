@@ -12,7 +12,7 @@ export type ParserReturnType<P> = P extends Parser<infer R, infer _, infer _> ? 
 export const from = <R, E, O>(parser: (o: O) => ParseResult<E, R>) => ({ runParser: parser });
 
 export function succeed<R, E, B>(result: R): Parser<R, E, B> {
-  return (of(result) as unknown) as Parser<R, E, B>;
+  return of(result);
 }
 
 export function fail<R, E, B>(error: E): Parser<R, E, B> {
@@ -93,9 +93,9 @@ export function recursive<R, E, I>(body: () => Parser<R, E, I>): Parser<R, E, I>
 /**
  * Run two parsers, failing if either fail and succeeding when both succeed.
  */
-export function both<T, U, E, I>(fst: Parser<T, E, I>, snd: Parser<U, E, I>): Parser<[T, U], E, I> {
+export function both<A, B, E, I>(fst: Parser<A, E, I>, snd: Parser<B, E, I>): Parser<[A, B], E, I> {
   return ap(
-    map(fst, (t: T) => (u: U) => [t, u]),
+    map(fst, (t: A) => (u: B) => [t, u]),
     snd
   );
 }
@@ -103,7 +103,7 @@ export function both<T, U, E, I>(fst: Parser<T, E, I>, snd: Parser<U, E, I>): Pa
 /**
  * Run two parsers on an unknown, succeeding if either succeed and failing if both fail.
  */
-export function or<T, U, B>(fst: Parser<T, string, B>, snd: Parser<U, string, B>): Parser<T | U, string, B> {
+export function or<A, B, I>(fst: Parser<A, string, I>, snd: Parser<B, string, I>): Parser<A | B, string, I> {
   return from(o => {
     const fres = fst.runParser(o);
     const sres = snd.runParser(o);
@@ -114,18 +114,21 @@ export function or<T, U, B>(fst: Parser<T, string, B>, snd: Parser<U, string, B>
 /**
  * Given an object of type B, parse out an object of type R with the possibility of errors of type E
  */
-export function runParser<R, E, B>(parser: Parser<R, E, B>, b: B) {
-  return parser.runParser(b);
+export function runParser<R, E, I>(parser: Parser<R, E, I>, input: I) {
+  return parser.runParser(input);
 }
 
 /**
  * Given an anonymous object and a parser, return the object or throw an exception if parsing fails.
  *
- * @param o value to parse from
+ * @param input value to parse from
  * @param parser the parser to run
  */
-export function runParserEx<R, E extends { toString(): string }, B>(parser: Parser<R, E, B>, o: B): R | never {
-  const result = parser.runParser(o);
+export function runParserEx<Result, Error extends { toString(): string }, Input>(
+  parser: Parser<Result, Error, Input>,
+  input: Input
+): Result | never {
+  const result = parser.runParser(input);
   if (isFailure(result)) {
     throw new Error(result.left.toString());
   }
@@ -291,36 +294,13 @@ export namespace object {
     [X in keyof Fields]: field.FieldParser<X, Fields[X], Error, Input>;
   };
 
-  // /**
-  //  * Object parsing with dependent fields.
-  //  *
-  //  */
-  // export function dependent<Fields, DependentFields, I>(
-  //   fieldParsers: FieldsParsers<Fields, string, I>,
-  //   dependent: { [X in keyof DependentFields]: (f: Fields) => field.FieldParser<X, DependentFields[X], string, Fields> }
-  // ): Parser<field.FieldsResult<FieldsParsers<Fields, string, I> & { [X in keyof DependentFields]: field.FieldParser<X, DependentFields[X], string, Fields> }>> {
-  //   return undefined as any;
-  // }
-
-  // const d = dependent(
-  //   {
-  //     year: field.required(thing.is.number),
-  //     month: field.required(thing.is.number)
-  //   },
-  //   {
-  //     day: ({ month }) => field.required(thing.is.number)
-  //   }
-  // );
-
   /**
    * Check that object satisfies certain conditions on it's fields.
    * Does not ensure that the object has more fields than listed in `fieldParsers`.
    *
    * @param fieldParsers validators for each field.
    */
-  export function has<Fields>(
-    fieldParsers: { [X in keyof Fields]: field.FieldParser<X, Fields[X]> }
-  ): Parser<field.FieldsResult<{ [X in keyof Fields]: field.FieldParser<X, Fields[X]> }>> {
+  export function has<Fields>(fieldParsers: { [X in keyof Fields]: field.FieldParser<X, Fields[X]> }): Parser<Fields> {
     return chain(thing.is.object, (obj: object) => {
       // Todo use Validated to improve errors
       const endResult: any = {};
@@ -340,7 +320,7 @@ export namespace object {
         }
         endResult[fieldName] = result.right;
       }
-      return succeed(endResult as field.FieldsResult<{ [X in keyof Fields]: field.FieldParser<X, Fields[X]> }>);
+      return succeed(endResult);
     });
   }
 
@@ -362,11 +342,9 @@ export namespace object {
    * });
    * ```
    */
-  export function just<Fields>(
-    fieldParsers: { [X in keyof Fields]: field.FieldParser<X, Fields[X]> }
-  ): Parser<field.FieldsResult<{ [X in keyof Fields]: field.FieldParser<X, Fields[X]> }>> {
+  export function just<Fields>(fieldParsers: { [X in keyof Fields]: field.FieldParser<X, Fields[X]> }): Parser<Fields> {
     return from(o =>
-      E.chain((all: field.FieldsResult<{ [X in keyof Fields]: field.FieldParser<X, Fields[X]> }>) => {
+      E.chain((all: Fields) => {
         const thisKeys = new Set(Object.keys(o as any));
         const parserKeys = new Set(Object.keys(fieldParsers));
         const diff = difference(eqString)(thisKeys, parserKeys);
