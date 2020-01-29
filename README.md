@@ -2,6 +2,8 @@
 
 # ununknown
 
+[![npm version](https://badge.fury.io/js/ununknown.svg)](https://badge.fury.io/js/ununknown)
+
 Typesafe combinatorial data validators/parsers for typescript using [fp-ts](https://gcanti.github.io/fp-ts/).
 
 Documentation is available [here](https://www.tkaden.net/ununknown).
