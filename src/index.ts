@@ -2,14 +2,17 @@ import { left, right, isRight, isLeft, Either, Right, Left } from "fp-ts/lib/Eit
 import * as E from "fp-ts/lib/Either";
 import { difference } from "fp-ts/lib/Set";
 import { eqString } from "fp-ts/lib/Eq";
-import { TypeNameToPrimitive, PrimitiveString } from "./util";
+import { TypeNameToPrimitive, PrimitiveString, Primitive } from "./util";
 import _ from "lodash";
+import { Monad3 } from "fp-ts/lib/Monad";
+import { Functor3 } from "fp-ts/lib/Functor";
+import { Applicative3 } from "fp-ts/lib/Applicative";
 
 export type ParseResult<Error, R> = Either<Error, R>;
 export type Parser<R, E = string, O = unknown> = { runParser: (o: O) => ParseResult<E, R> };
 export type ParserReturnType<P> = P extends Parser<infer R, infer _, infer _> ? R : never;
 
-export const from = <R, E, O>(parser: (o: O) => ParseResult<E, R>) => ({ runParser: parser });
+export const from = <R, E, O>(parser: (o: O) => ParseResult<E, R>): Parser<R, E, O> => ({ runParser: parser });
 
 export function succeed<R, E, B>(result: R): Parser<R, E, B> {
   return of(result);
@@ -27,33 +30,35 @@ export function isFailure<R, E>(result: ParseResult<E, R>): result is Left<E> {
   return isLeft(result);
 }
 
-// TODO fix instances to work with fp-ts
+export const URI = "Parser" as const;
+export type URI = typeof URI;
 
-// export const URI = "Parser";
-// export type URI = typeof URI;
+declare module "fp-ts/lib/HKT" {
+  interface URItoKind3<R, E, A> {
+    Parser: Parser<A, E, R>;
+  }
+}
 
-// declare module "fp-ts/lib/HKT" {
-//   interface URItoKind<A> {
-//     Parser: Parser<A>;
-//   }
-// }
-
-export const parserFunctor = {
-  // URI,
+const parserFunctor = {
+  URI,
   map: <A, E, B, C>(v: Parser<A, E, C>, f: (a: A) => B): Parser<B, E, C> => from((o: C) => E.map(f)(v.runParser(o)))
 };
 
-export const parserApplicative = {
+const parserApplicative = {
   ...parserFunctor,
   of: <A, E, C>(a: A): Parser<A, E, C> => from((_: C) => right(a)),
   ap: <A, B, E, C>(fab: Parser<(a: A) => B, E, C>, a: Parser<A, E, C>): Parser<B, E, C> =>
     from((o: C) => E.ap(a.runParser(o))(fab.runParser(o)))
 };
 
-export const parserMonad = {
+const parserMonad = {
   ...parserApplicative,
   chain: <A, B, E, C>(fa: Parser<A, E, C>, afb: (a: A) => Parser<B, E, C>): Parser<B, E, C> =>
     from((o: C) => E.chain((a: A) => afb(a).runParser(o))(fa.runParser(o)))
+};
+
+export const parser: Monad3<URI> & Functor3<URI> & Applicative3<URI> = {
+  ...parserMonad
 };
 
 export const map = parserMonad.map;
