@@ -1,4 +1,5 @@
-import { recursive, Parser, object, field, thing, array, runParserEx, isSuccess, runParser } from "../src";
+import { recursive, Parser, field, thing, array, runParserEx, isSuccess, runParser, parser } from "../src";
+import { sequenceS } from "fp-ts/lib/Apply";
 
 interface Person {
   name: {
@@ -9,22 +10,23 @@ interface Person {
   children: Array<Person>;
 }
 
-const personValidator: Parser<Person> = recursive(() =>
-  object.just({
+const personValidator: Parser<Person, unknown> = recursive(() =>
+  sequenceS(parser)({
     name: field.required(
-      object.just({
-        first: field.required(thing.is.string),
-        last: field.required(thing.is.string)
+      "name",
+      sequenceS(parser)({
+        first: field.required("first", thing.is.string),
+        last: field.required("last", thing.is.string)
       })
     ),
-    age: field.optional(thing.is.number),
-    children: field.required(array.of(personValidator))
+    age: field.optional("age", thing.is.number),
+    children: field.required("children", array.of(personValidator))
   })
 );
 
 // Check if validation succeeded
 
-const test: any = {
+const test = {
   name: {
     first: "Kaden",
     last: "Thomas"
@@ -34,7 +36,7 @@ const test: any = {
 };
 
 // Throws an error with result.left if it fails
-const result: Person = runParserEx(test, personValidator);
+const result: Person = runParserEx(personValidator, test);
 
 // Non-exception based
 const parseResult = runParser(personValidator, test);

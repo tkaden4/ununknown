@@ -1,6 +1,18 @@
 {
   "compilerOptions": {
-    "outDir": "./build.test/"
+    "outDir": "./build.test/",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "alwaysStrict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "strictFunctionTypes": true,
+    "strict": true,
+    "target": "es5",
+    "esModuleInterop": true,
+    "declaration": true,
+    "skipLibCheck": true,
+    "lib": ["ES2015", "DOM"]
   },
   "extends": "./tsconfig.json",
   "include": ["examples/**/*.ts"]
