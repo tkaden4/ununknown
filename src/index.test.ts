@@ -161,14 +161,11 @@ describe("structured validation", () => {
   };
 
   test("simple date validation", () => {
-    const dateValidatorSimple = parser.map(
-      object.has(
-        field.required("year", compose(numberFromString, number.range.inclusive(0, 4000))),
-        field.required("month", compose(numberFromString, number.range.inclusive(1, 12))),
-        field.required("day", compose(numberFromString, number.range.inclusive(0, 31)))
-      ),
-      ([year, month, day]) => ({ year, month, day })
-    );
+    const dateValidatorSimple = object.of({
+      year: field.required("year", compose(numberFromString, number.range.inclusive(0, 4000))),
+      month: field.required("month", compose(numberFromString, number.range.inclusive(1, 12))),
+      day: field.required("day", compose(numberFromString, number.range.inclusive(0, 31)))
+    });
 
     // Correct dates
     expect(isSuccess(dateValidatorSimple.runParser({ year: "0", month: "12", day: "30" }))).toBeTruthy();
@@ -188,12 +185,12 @@ describe("structured validation", () => {
   test("contextual date validation", () => {
     // Or if we want parsing that is more context-sensitive (correct number of days depending on the month)
     const dateParser = chain(
-      object.has(
-        field.required("year", compose(numberFromString, number.range.inclusive(0, 4000))),
-        field.required("month", compose(numberFromString, number.range.inclusive(1, 12))),
-        field.required("day", numberFromString)
-      ),
-      ([year, month, day]) =>
+      object.of({
+        year: field.required("year", compose(numberFromString, number.range.inclusive(0, 4000))),
+        month: field.required("month", compose(numberFromString, number.range.inclusive(1, 12))),
+        day: field.required("day", numberFromString)
+      }),
+      ({ year, month, day }) =>
         correctDaysForMonth(month, day)
           ? succeed({ year, month, day })
           : fail(`${day} is not a valid number of days for month ${month}`)

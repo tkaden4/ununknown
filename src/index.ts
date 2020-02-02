@@ -1,4 +1,4 @@
-import { sequenceT } from "fp-ts/lib/Apply";
+import { sequenceT, sequenceS } from "fp-ts/lib/Apply";
 import * as E from "fp-ts/lib/Either";
 import { Either, isLeft, isRight, left, Left, right, Right } from "fp-ts/lib/Either";
 import _ from "lodash";
@@ -273,7 +273,7 @@ export namespace object {
    * Check that object satisfies certain conditions on it's fields.
    * Does not ensure that the object has more fields than listed.
    */
-  export const has = sequenceT(parser);
+  export const of = sequenceS(parser);
 }
 
 export namespace func {

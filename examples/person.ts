@@ -1,5 +1,4 @@
-import { recursive, Parser, field, thing, array, runParserEx, isSuccess, runParser, parser } from "../src";
-import { sequenceS } from "fp-ts/lib/Apply";
+import { array, field, isSuccess, object, Parser, recursive, runParser, runParserEx, thing } from "../src";
 
 interface Person {
   name: {
@@ -11,10 +10,10 @@ interface Person {
 }
 
 const personValidator: Parser<Person, unknown> = recursive(() =>
-  sequenceS(parser)({
+  object.of({
     name: field.required(
       "name",
-      sequenceS(parser)({
+      object.of({
         first: field.required("first", thing.is.string),
         last: field.required("last", thing.is.string)
       })

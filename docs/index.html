@@ -90,8 +90,7 @@
 				<a href="#example" id="example" style="color: inherit; text-decoration: none;">
 					<h2>Example</h2>
 				</a>
-				<pre><code class="language-typescript"><span class="hljs-keyword">import</span> { recursive, Parser, field, thing, array, runParserEx, isSuccess, runParser, parser } <span class="hljs-keyword">from</span> <span class="hljs-string">"../src"</span>;
-<span class="hljs-keyword">import</span> { sequenceS } <span class="hljs-keyword">from</span> <span class="hljs-string">"fp-ts/lib/Apply"</span>;
+				<pre><code class="language-typescript"><span class="hljs-keyword">import</span> { array, field, isSuccess, object, Parser, recursive, runParser, runParserEx, thing } <span class="hljs-keyword">from</span> <span class="hljs-string">"../src"</span>;
 
 <span class="hljs-keyword">interface</span> Person {
   name: {
@@ -103,10 +102,10 @@
 }
 
 <span class="hljs-keyword">const</span> personValidator: Parser&lt;Person, unknown&gt; = recursive(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span>
-  sequenceS(parser)({
+  object.of({
     name: field.required(
       <span class="hljs-string">"name"</span>,
-      sequenceS(parser)({
+      object.of({
         first: field.required(<span class="hljs-string">"first"</span>, thing.is.string),
         last: field.required(<span class="hljs-string">"last"</span>, thing.is.string)
       })
