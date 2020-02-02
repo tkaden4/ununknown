@@ -25,55 +25,10 @@ in several situations, including, if not limited to:
 - Javascript Interop
 - JSON RPCs
 
-## `Functor`, `Applicative`, and `Monad` instances
-
-Instances for `Functor`, `Applicative`, and `Monad` are available so that you can do high-level parsing:
-
-```typescript
-// Converts from a string to a number
-const numberFromString: Parser<number> = chain(thing.is.string, (s: string) =>
-  +s === NaN ? fail(`${s} is not a number`) : succeed(+s)
-);
-
-interface Date {
-  year: number;
-  month: number;
-  day: number;
-}
-
-// Validator/parser that takes in objects of the following form:
-/**
- * {
- *   year: "...",
- *   month: "...",
- *   day: "..."
- * }
- * and gives us back an object of type Date, with fields checked for validity
- * */
-const simpleDateValidator: Parser<Date> = object.just({
-  year: required(compose(numberFromString, number.range.inclusive(0, 4000))),
-  month: required(compose(numberFromString, number.range.inclusive(1, 12))),
-  day: required(compose(numberFromString, number.range.inclusive(0, 31)))
-});
-
-// Or if we want parsing that is more context-sensitive (correct number of days depending on the month)
-const dateValidator: Parser<Date> = chain(
-  object.just({
-    year: field.required(compose(numberFromString, number.range.inclusive(0, 4000))),
-    month: field.required(compose(numberFromString, number.range.inclusive(1, 12))),
-    day: field.required(numberFromString)
-  }),
-  ({ year, month, day }) =>
-    correctDaysForMonth(month, day) // definition elided for convenience
-      ? succeed({ year, month, day })
-      : fail(`${day} is not a valid number of days for month ${month}`)
-);
-```
-
 ## Example
 
 ```typescript
-import { recursive, Parser, object, field, thing, array, runParser, runParserEx, isSuccess } from "ununknown";
+import { array, field, isSuccess, object, Parser, recursive, runParser, runParserEx, thing } from "../src";
 
 interface Person {
   name: {
@@ -84,22 +39,23 @@ interface Person {
   children: Array<Person>;
 }
 
-const personValidator: Parser<Person> = recursive(() =>
-  object.just({
+const personValidator: Parser<Person, unknown> = recursive(() =>
+  object.of({
     name: field.required(
-      object.just({
-        first: field.required(thing.is.string),
-        last: field.required(thing.is.string)
+      "name",
+      object.of({
+        first: field.required("first", thing.is.string),
+        last: field.required("last", thing.is.string)
       })
     ),
-    age: field.optional(thing.is.number),
-    children: field.required(array.of(personValidator))
+    age: field.optional("age", thing.is.number),
+    children: field.required("children", array.of(personValidator))
   })
 );
 
 // Check if validation succeeded
 
-const test: any = {
+const test = {
   name: {
     first: "Kaden",
     last: "Thomas"

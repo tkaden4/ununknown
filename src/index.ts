@@ -1,24 +1,22 @@
-import { left, right, isRight, isLeft, Either, Right, Left } from "fp-ts/lib/Either";
+import { sequenceT, sequenceS } from "fp-ts/lib/Apply";
 import * as E from "fp-ts/lib/Either";
-import { difference } from "fp-ts/lib/Set";
-import { eqString } from "fp-ts/lib/Eq";
-import { TypeNameToPrimitive, PrimitiveString, Primitive } from "./util";
+import { Either, isLeft, isRight, left, Left, right, Right } from "fp-ts/lib/Either";
 import _ from "lodash";
-import { Monad3 } from "fp-ts/lib/Monad";
-import { Functor3 } from "fp-ts/lib/Functor";
-import { Applicative3 } from "fp-ts/lib/Applicative";
+import { PrimitiveString, TypeNameToPrimitive } from "./util";
+import { Lazy } from "fp-ts/lib/function";
 
 export type ParseResult<Error, R> = Either<Error, R>;
-export type Parser<R, E = string, O = unknown> = { runParser: (o: O) => ParseResult<E, R> };
+export type Parser<R, E, O = unknown> = { runParser: (o: O) => ParseResult<E, R> };
 export type ParserReturnType<P> = P extends Parser<infer R, infer _, infer _> ? R : never;
 
 export const from = <R, E, O>(parser: (o: O) => ParseResult<E, R>): Parser<R, E, O> => ({ runParser: parser });
+export const fromResult = <R, E, I>(e: Either<E, R>): Parser<R, E, I> => from(_ => e);
 
-export function succeed<R, E, B>(result: R): Parser<R, E, B> {
+export function succeed<R, E, B>(result: R): Parser<R, never, B> {
   return of(result);
 }
 
-export function fail<R, E, B>(error: E): Parser<R, E, B> {
+export function fail<R, E, B>(error: E): Parser<never, E, B> {
   return from(_ => left(error));
 }
 
@@ -39,59 +37,52 @@ declare module "fp-ts/lib/HKT" {
   }
 }
 
+export const mapError = <A, E, R, D>(parser: Parser<A, E, R>, ed: (e: E) => D): Parser<A, D, R> => {
+  return from(o => {
+    const result = parser.runParser(o);
+    return E.either.mapLeft(result, ed);
+  });
+};
+
 const parserFunctor = {
   URI,
   map: <A, E, B, C>(v: Parser<A, E, C>, f: (a: A) => B): Parser<B, E, C> => from((o: C) => E.map(f)(v.runParser(o)))
-};
+} as const;
 
 const parserApplicative = {
   ...parserFunctor,
   of: <A, E, C>(a: A): Parser<A, E, C> => from((_: C) => right(a)),
   ap: <A, B, E, C>(fab: Parser<(a: A) => B, E, C>, a: Parser<A, E, C>): Parser<B, E, C> =>
     from((o: C) => E.ap(a.runParser(o))(fab.runParser(o)))
-};
+} as const;
 
 const parserMonad = {
   ...parserApplicative,
   chain: <A, B, E, C>(fa: Parser<A, E, C>, afb: (a: A) => Parser<B, E, C>): Parser<B, E, C> =>
-    from((o: C) => E.chain((a: A) => afb(a).runParser(o))(fa.runParser(o)))
-};
+    from((o: C) => E.chain((a: A): Either<E, B> => afb(a).runParser(o))(fa.runParser(o)))
+} as const;
 
-export const parser: Monad3<URI> & Functor3<URI> & Applicative3<URI> = {
-  ...parserMonad
-};
+export const parser = {
+  ...parserMonad,
+  mapError
+} as const;
 
 export const map = parserMonad.map;
 export const of = parserMonad.of;
 export const ap = parserMonad.ap;
 export const chain = parserMonad.chain;
 
-export const compose = <A, B, C, E>(vb: Parser<B, E, A>, vc: Parser<C, E, B>): Parser<C, E, A> => {
-  return chain(vb, (b: B) => from((_: A) => vc.runParser(b)));
+export const compose = <A, B, C, E, D>(vb: Parser<B, E, A>, vc: Parser<C, D, B>): Parser<C, E | D, A> => {
+  return chain(vb, (b: B): Parser<C, E | D, A> => from((_: A) => vc.runParser(b)));
 };
 
 /**
  * Due to javascript not being a "lazy" language, we have to embed recursive references to
- * parsers in a thunk, like so:
- *
- * @example
- * ```typescript
- * interface Trie {
- *   value: string;
- *   children: Array<Trie>;
- * }
- *
- * const trieParser: Parser<Trie> = recursive(() =>
- *   object.just({
- *     value: field.required(thing.is.string),
- *     children: field.required(array.of(trieParser))
- *   })
- * );
- * ```
+ * parsers in a thunk.
  *
  * @param body A thunk that returns a parser, possibly one that references itself.
  */
-export function recursive<R, E, I>(body: () => Parser<R, E, I>): Parser<R, E, I> {
+export function recursive<R, E, I>(body: Lazy<Parser<R, E, I>>): Parser<R, E, I> {
   return from(o => body().runParser(o));
 }
 
@@ -129,37 +120,43 @@ export function runParser<R, E, I>(parser: Parser<R, E, I>, input: I) {
  * @param input value to parse from
  * @param parser the parser to run
  */
-export function runParserEx<Result, Error extends { toString(): string }, Input>(
-  parser: Parser<Result, Error, Input>,
-  input: Input
-): Result | never {
+export function runParserEx<Result, Error, Input>(parser: Parser<Result, Error, Input>, input: Input): Result | never {
   const result = parser.runParser(input);
   if (isFailure(result)) {
-    throw new Error(result.left.toString());
+    throw new Error(`${result.left}`);
   }
   return result.right;
 }
 
+export type PredicateMismatchError = { _tag: "PredicateMismatch"; value: unknown; customMessage: string };
+
 export const predicate = <K extends PrimitiveString, I>(type: K) => (
   p: (s: TypeNameToPrimitive<K>) => boolean,
   template: (s: TypeNameToPrimitive<K>) => string = s => `${s} did not satisfy custom constraint`
-): Parser<TypeNameToPrimitive<K>, string, I> =>
+): Parser<TypeNameToPrimitive<K>, thing.is.TypeMismatchError | PredicateMismatchError, I> =>
   from(o =>
-    E.chain((s: TypeNameToPrimitive<K>) => (p(s) ? right(s) : left(template(s))))(thing.is.of(type).runParser(o))
+    E.chain(
+      (
+        s: TypeNameToPrimitive<K>
+      ): Either<thing.is.TypeMismatchError | PredicateMismatchError, TypeNameToPrimitive<K>> =>
+        p(s) ? right(s) : left({ _tag: "PredicateMismatch", value: o, customMessage: template(s) })
+    )(thing.is.of(type).runParser(o))
   );
 
 export namespace thing {
   export namespace is {
+    export type TypeMismatchError = { _tag: "NotOfType"; type: PrimitiveString; value: unknown };
+
     /**
      * Ensure that the input value is one the many primitive javascript objects.
      * @param type string representing the `typeof` string for the object.
      */
-    export function of<K extends PrimitiveString, I>(type: K): Parser<TypeNameToPrimitive<K>, string, I> {
+    export function of<K extends PrimitiveString, I>(type: K): Parser<TypeNameToPrimitive<K>, TypeMismatchError, I> {
       return from(o => {
         if (typeof o === type) {
           return right((o as unknown) as TypeNameToPrimitive<K>);
         } else {
-          return left(`${JSON.stringify(o)} is not of type ${JSON.stringify(type)}`);
+          return left({ _tag: "NotOfType", type, value: o });
         }
       });
     }
@@ -220,69 +217,46 @@ export namespace boolean {
   export const isTrue = predicate("boolean")(
     s => s,
     () => `expected true, got false`
-  ) as Parser<true>;
+  ) as Parser<true, PredicateMismatchError | thing.is.TypeMismatchError>;
 
   export const isFalse = predicate("boolean")(
     s => !s,
     () => `expected false, got true`
-  ) as Parser<false>;
+  ) as Parser<false, PredicateMismatchError | thing.is.TypeMismatchError>;
 }
 
 export namespace field {
   export type Field = string | number | symbol;
-  export type Fields<K> = { [X in keyof K]: X }[keyof K];
-  export type FieldType = "dependent" | "required" | "optional";
 
-  export type FieldParser<FieldName extends string | number | symbol, R, E = string, I = object> =
-    | {
-        type: "required" | "optional";
-        run: (o: FieldName) => Parser<R, E, I>;
+  export type FieldParserError = { _tag: "FieldDoesNotExistOn"; on: unknown; field: Field };
+
+  export function optional<R, E>(
+    field: string | number,
+    parser: Parser<R, E, unknown>
+  ): Parser<R | undefined, E, unknown> {
+    return from(o => {
+      if (field in (o as any)) {
+        return parser.runParser((o as any)[field]);
+      } else {
+        return right(undefined);
       }
-    | { type: "dependent"; on: Array<string>; run: (o: FieldName) => Parser<R, E, I> };
-
-  export type FieldParserResult<D> = D extends FieldParser<infer _, infer R, infer _, infer _> ? R : never;
-
-  export type OptionalKeys<Fields> = {
-    [X in keyof Fields]: Fields[X] extends FieldParser<infer _, infer R> ? (R extends undefined ? X : never) : never;
-  }[keyof Fields];
-
-  export type NonOptionalKeys<Fields> = Exclude<keyof Fields, OptionalKeys<Fields>>;
-
-  export type FieldsResult<Fields> = {
-    [X in OptionalKeys<Fields>]?: FieldParserResult<Fields[X]>;
-  } &
-    {
-      [X in NonOptionalKeys<Fields>]: FieldParserResult<Fields[X]>;
-    };
-
-  export function optional<F extends Field, R, E>(parser: Parser<R, E, object>): FieldParser<F, R | undefined, E> {
-    return {
-      type: "optional",
-      run: field =>
-        from(o => {
-          if (field in (o as any)) {
-            return parser.runParser((o as any)[field]);
-          } else {
-            return right(undefined);
-          }
-        })
-    };
+    });
   }
 
-  export function required<F extends Field, FieldResult, I>(
-    parser: Parser<FieldResult>
-  ): FieldParser<F, FieldResult, string, I> {
-    return {
-      type: "required",
-      run: field =>
-        from(o => {
-          if (field in (o as any)) {
-            return parser.runParser((o as any)[field]);
-          } else {
-            return left(`${JSON.stringify(o)} does not contain field ${JSON.stringify(field)}`);
-          }
-        })
-    };
+  export function required<R, E>(
+    field: string | number,
+    parser: Parser<R, E>
+  ): Parser<R, E | FieldParserError | thing.is.TypeMismatchError, unknown> {
+    return chain(
+      thing.is.object,
+      (o: object): Parser<R, E | FieldParserError | thing.is.TypeMismatchError> => {
+        if (field in (o as any)) {
+          return fromResult(parser.runParser((o as any)[field]));
+        } else {
+          return fail({ _tag: "FieldDoesNotExistOn", on: o, field });
+        }
+      }
+    );
   }
 }
 
@@ -295,75 +269,11 @@ export namespace undef {}
 export namespace object {
   export const predicate = p("object");
 
-  export type FieldsParsers<Fields, Error, Input> = {
-    [X in keyof Fields]: field.FieldParser<X, Fields[X], Error, Input>;
-  };
-
   /**
    * Check that object satisfies certain conditions on it's fields.
-   * Does not ensure that the object has more fields than listed in `fieldParsers`.
-   *
-   * @param fieldParsers validators for each field.
+   * Does not ensure that the object has more fields than listed.
    */
-  export function has<Fields>(fieldParsers: { [X in keyof Fields]: field.FieldParser<X, Fields[X]> }): Parser<Fields> {
-    return chain(thing.is.object, (obj: object) => {
-      // Todo use Validated to improve errors
-      const endResult: any = {};
-      for (const fieldName in fieldParsers) {
-        const parser = fieldParsers[fieldName];
-        switch (parser.type) {
-          case "dependent":
-            break;
-          case "optional":
-            break;
-          case "required":
-            break;
-        }
-        const result = fieldParsers[fieldName].run(fieldName).runParser(obj);
-        if (isFailure(result)) {
-          return fail(result.left);
-        }
-        endResult[fieldName] = result.right;
-      }
-      return succeed(endResult);
-    });
-  }
-
-  /**
-   * Check that object has only the fields listed, and no more.
-   *
-   * @example
-   * ```typescript
-   * interface RGBColor {
-   *   r: number;
-   *   g: number;
-   *   b: number;
-   * }
-   *
-   * const rgbColorParser: Parser<RGBColor> = object.just({
-   *   r: field.required(number.range.inclusive(0, 255)),
-   *   g: field.required(number.range.inclusive(0, 255)),
-   *   b: field.required(number.range.inclusive(0, 255))
-   * });
-   * ```
-   */
-  export function just<Fields>(fieldParsers: { [X in keyof Fields]: field.FieldParser<X, Fields[X]> }): Parser<Fields> {
-    return from(o =>
-      E.chain((all: Fields) => {
-        const thisKeys = new Set(Object.keys(o as any));
-        const parserKeys = new Set(Object.keys(fieldParsers));
-        const diff = difference(eqString)(thisKeys, parserKeys);
-        if (!Array.from(diff).every(x => x in fieldParsers)) {
-          return left(
-            `${JSON.stringify(all)} has extra fields not present in ${JSON.stringify(
-              Object.keys(fieldParsers)
-            )}: ${JSON.stringify(diff)}`
-          );
-        }
-        return right(all as any);
-      })(has(fieldParsers).runParser(o))
-    );
-  }
+  export const of = sequenceS(parser);
 }
 
 export namespace func {
@@ -409,22 +319,27 @@ export namespace number {
 }
 
 export namespace array {
+  export type ArrayParserError<A, I> =
+    | { _tag: "NotAnArray"; input: I }
+    | { _tag: "ElementMisMatch"; array: Array<A>; element: A };
   /**
    * Check that the input value is an array satisfying constraints.
    *
    * @param parser Check for each element of the input array.
    */
-  export function of<Value, Input>(parser: Parser<Value>): Parser<Array<Value>, string, Input> {
+  export function of<Value, Error, Input>(
+    parser: Parser<Value, Error>
+  ): Parser<Array<Value>, Error | ArrayParserError<unknown, Input>, Input> {
     return from(o => {
       if (Array.isArray(o)) {
         const results = o.map(each => parser.runParser(each)).filter(isFailure);
         if (results.length > 0) {
-          return left(`${JSON.stringify(o)} is an invalid array: ${results.map(x => x.left).join(", ")}`);
+          return left({ _tag: "ElementMisMatch", array: o, element: results[0] });
         } else {
           return right(o);
         }
       } else {
-        return left(`${JSON.stringify(o)} is not an array`);
+        return left({ _tag: "NotAnArray", input: o });
       }
     });
   }
