@@ -123,7 +123,7 @@ export function runParser<R, E, I>(parser: Parser<R, E, I>, input: I) {
 export function runParserEx<Result, Error, Input>(parser: Parser<Result, Error, Input>, input: Input): Result | never {
   const result = parser.runParser(input);
   if (isFailure(result)) {
-    throw new Error(`${result.left}`);
+    throw new Error(`${JSON.stringify(result.left)}`);
   }
   return result.right;
 }
