@@ -146,6 +146,7 @@ export const predicate = <K extends PrimitiveString, I>(type: K) => (
 export namespace thing {
   export namespace is {
     export type TypeMismatchError = { _tag: "NotOfType"; type: PrimitiveString; value: unknown };
+    export type EqualityError = { _tag: "NotEqual"; to: unknown; value: unknown };
 
     /**
      * Ensure that the input value is one the many primitive javascript objects.
@@ -164,7 +165,9 @@ export namespace thing {
     export const symbol = of("symbol");
     export const string = of("string");
     export const func = of("function");
-    export const object = of("object");
+    export const object = chain(of("object") as Parser<object, TypeMismatchError | EqualityError, unknown>, e =>
+      e === null ? fail({ _tag: "NotEqual", to: null, value: e } as EqualityError) : succeed(e)
+    );
     export const undef = of("undefined");
     export const bigint = of("bigint");
     export const boolean = of("boolean");
@@ -233,10 +236,10 @@ export namespace field {
   export function optional<R, E>(
     field: string | number,
     parser: Parser<R, E, unknown>
-  ): Parser<R | undefined, E | thing.is.TypeMismatchError, unknown> {
+  ): Parser<R | undefined, E | thing.is.TypeMismatchError | thing.is.EqualityError, unknown> {
     return chain(
       thing.is.object,
-      (): Parser<R | undefined, E | thing.is.TypeMismatchError, unknown> =>
+      (): Parser<R | undefined, E | thing.is.TypeMismatchError | thing.is.EqualityError, unknown> =>
         from(o => {
           if (field in (o as any)) {
             return parser.runParser((o as any)[field]);
@@ -250,10 +253,10 @@ export namespace field {
   export function required<R, E>(
     field: string | number,
     parser: Parser<R, E>
-  ): Parser<R, E | FieldParserError | thing.is.TypeMismatchError, unknown> {
+  ): Parser<R, E | FieldParserError | thing.is.TypeMismatchError | thing.is.EqualityError, unknown> {
     return chain(
       thing.is.object,
-      (o: object): Parser<R, E | FieldParserError | thing.is.TypeMismatchError> => {
+      (o: object): Parser<R, E | FieldParserError | thing.is.TypeMismatchError | thing.is.EqualityError> => {
         if (field in (o as any)) {
           return fromResult(parser.runParser((o as any)[field]));
         } else {

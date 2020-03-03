@@ -12,7 +12,8 @@ import {
   compose,
   runParser,
   parser,
-  Parser
+  Parser,
+  isFailure
 } from "./index";
 import { sequenceS } from "fp-ts/lib/Apply";
 
@@ -66,6 +67,12 @@ describe("structured validation", () => {
     r: field.required("r", number.range.inclusive(0, 255)),
     g: field.required("g", number.range.inclusive(0, 255)),
     b: field.required("b", number.range.inclusive(0, 255))
+  });
+
+  const hasField = object.of({ hello: field.required("hello", thing.is.string) });
+
+  test("null edge case", () => {
+    expect(isFailure(hasField.runParser(null))).toBeTruthy();
   });
 
   test("rgb color", () => {

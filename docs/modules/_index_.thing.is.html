@@ -85,6 +85,7 @@
 						<section class="tsd-index-section ">
 							<h3>Type aliases</h3>
 							<ul class="tsd-index-list">
+								<li class="tsd-kind-type-alias tsd-parent-kind-module"><a href="_index_.thing.is.html#equalityerror" class="tsd-kind-icon">Equality<wbr>Error</a></li>
 								<li class="tsd-kind-type-alias tsd-parent-kind-module"><a href="_index_.thing.is.html#typemismatcherror" class="tsd-kind-icon">Type<wbr>Mismatch<wbr>Error</a></li>
 							</ul>
 						</section>
@@ -114,6 +115,30 @@
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Type aliases</h2>
+				<section class="tsd-panel tsd-member tsd-kind-type-alias tsd-parent-kind-module">
+					<a name="equalityerror" class="tsd-anchor"></a>
+					<h3>Equality<wbr>Error</h3>
+					<div class="tsd-signature tsd-kind-icon">Equality<wbr>Error<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in src/index.ts:149</li>
+						</ul>
+					</aside>
+					<div class="tsd-type-declaration">
+						<h4>Type declaration</h4>
+						<ul class="tsd-parameters">
+							<li class="tsd-parameter">
+								<h5>_tag<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">"NotEqual"</span></h5>
+							</li>
+							<li class="tsd-parameter">
+								<h5>to<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">unknown</span></h5>
+							</li>
+							<li class="tsd-parameter">
+								<h5>value<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">unknown</span></h5>
+							</li>
+						</ul>
+					</div>
+				</section>
 				<section class="tsd-panel tsd-member tsd-kind-type-alias tsd-parent-kind-module">
 					<a name="typemismatcherror" class="tsd-anchor"></a>
 					<h3>Type<wbr>Mismatch<wbr>Error</h3>
@@ -147,7 +172,7 @@
 					<div class="tsd-signature tsd-kind-icon">array<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span><span class="tsd-signature-symbol"> =&nbsp;predicate(&quot;object&quot;)(Array.isArray)</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in src/index.ts:172</li>
+							<li>Defined in src/index.ts:175</li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -183,7 +208,7 @@
 					<div class="tsd-signature tsd-kind-icon">bigint<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span><span class="tsd-signature-symbol"> =&nbsp;of(&quot;bigint&quot;)</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in src/index.ts:169</li>
+							<li>Defined in src/index.ts:172</li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -219,7 +244,7 @@
 					<div class="tsd-signature tsd-kind-icon">boolean<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span><span class="tsd-signature-symbol"> =&nbsp;of(&quot;boolean&quot;)</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in src/index.ts:170</li>
+							<li>Defined in src/index.ts:173</li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -255,7 +280,7 @@
 					<div class="tsd-signature tsd-kind-icon">func<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span><span class="tsd-signature-symbol"> =&nbsp;of(&quot;function&quot;)</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in src/index.ts:166</li>
+							<li>Defined in src/index.ts:167</li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -291,7 +316,7 @@
 					<div class="tsd-signature tsd-kind-icon">number<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span><span class="tsd-signature-symbol"> =&nbsp;of(&quot;number&quot;)</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in src/index.ts:171</li>
+							<li>Defined in src/index.ts:174</li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -324,10 +349,10 @@
 				<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-module">
 					<a name="object" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagConst">Const</span> object</h3>
-					<div class="tsd-signature tsd-kind-icon">object<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span><span class="tsd-signature-symbol"> =&nbsp;of(&quot;object&quot;)</span></div>
+					<div class="tsd-signature tsd-kind-icon">object<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span><span class="tsd-signature-symbol"> =&nbsp;chain(of(&quot;object&quot;) as Parser&lt;object, TypeMismatchError | EqualityError, unknown&gt;, e &#x3D;&gt;e &#x3D;&#x3D;&#x3D; null ? fail({ _tag: &quot;NotEqual&quot;, to: null, value: e } as EqualityError) : succeed(e))</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in src/index.ts:167</li>
+							<li>Defined in src/index.ts:168</li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -363,7 +388,7 @@
 					<div class="tsd-signature tsd-kind-icon">string<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span><span class="tsd-signature-symbol"> =&nbsp;of(&quot;string&quot;)</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in src/index.ts:165</li>
+							<li>Defined in src/index.ts:166</li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -399,7 +424,7 @@
 					<div class="tsd-signature tsd-kind-icon">symbol<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span><span class="tsd-signature-symbol"> =&nbsp;of(&quot;symbol&quot;)</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in src/index.ts:164</li>
+							<li>Defined in src/index.ts:165</li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -435,7 +460,7 @@
 					<div class="tsd-signature tsd-kind-icon">undef<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span><span class="tsd-signature-symbol"> =&nbsp;of(&quot;undefined&quot;)</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in src/index.ts:168</li>
+							<li>Defined in src/index.ts:171</li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -478,7 +503,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in src/index.ts:177</li>
+									<li>Defined in src/index.ts:180</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -515,7 +540,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in src/index.ts:154</li>
+									<li>Defined in src/index.ts:155</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -557,6 +582,9 @@
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
+					<li class=" tsd-kind-type-alias tsd-parent-kind-module">
+						<a href="_index_.thing.is.html#equalityerror" class="tsd-kind-icon">Equality<wbr>Error</a>
+					</li>
 					<li class=" tsd-kind-type-alias tsd-parent-kind-module">
 						<a href="_index_.thing.is.html#typemismatcherror" class="tsd-kind-icon">Type<wbr>Mismatch<wbr>Error</a>
 					</li>
