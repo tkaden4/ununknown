@@ -233,14 +233,18 @@ export namespace field {
   export function optional<R, E>(
     field: string | number,
     parser: Parser<R, E, unknown>
-  ): Parser<R | undefined, E, unknown> {
-    return from(o => {
-      if (field in (o as any)) {
-        return parser.runParser((o as any)[field]);
-      } else {
-        return right(undefined);
-      }
-    });
+  ): Parser<R | undefined, E | thing.is.TypeMismatchError, unknown> {
+    return chain(
+      thing.is.object,
+      (): Parser<R | undefined, E | thing.is.TypeMismatchError, unknown> =>
+        from(o => {
+          if (field in (o as any)) {
+            return parser.runParser((o as any)[field]);
+          } else {
+            return right(undefined);
+          }
+        })
+    );
   }
 
   export function required<R, E>(
