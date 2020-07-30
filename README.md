@@ -28,7 +28,7 @@ in several situations, including, if not limited to:
 ## Example
 
 ```typescript
-import { array, field, isSuccess, object, Parser, recursive, runParser, runParserEx, thing } from "../src";
+import { array, field, isSuccess, object, Parser, recursive, runParser, runParserEx, thing } from "ununknown";
 
 interface Person {
   name: {
